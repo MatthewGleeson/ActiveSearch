@@ -40,6 +40,9 @@ class argMaxPolicy(policy):
         #TODO: decide whether to do all of the argmax stuff in a model function or here
         scores = self.utility.getScores()
         chosen_x_index = np.argmax(scores)
-
+        print("largest score value:",scores[chosen_x_index])
+        print("next index's score value:",scores[chosen_x_index+1])
+        print("chooses x index:",chosen_x_index)
+        print("with y_train value:",self.utility.model.problem.y_train[chosen_x_index])
         chosen_x = self.utility.model.problem.x_pool[chosen_x_index]
         return chosen_x_index, chosen_x

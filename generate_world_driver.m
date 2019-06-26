@@ -1,5 +1,5 @@
 
-function output = generate_world_driver()
+function [labels_random, labels_deterministic,problem]= generate_world_driver()
 
 addpath(genpath('./gpml'))
 side_length = 50;
@@ -24,7 +24,7 @@ close all
 labels_deterministic = probabilities > 0.7;
 % figure; imagesc(reshape(labels_deterministic, side_length, side_length));
 
-output = problem
+%output = problem
 end
 
 
