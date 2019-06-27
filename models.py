@@ -44,7 +44,7 @@ class randomModel(model):
 
 class knnModel(model):
     def __init__(self, problem):
-        k = 4
+        k = 100
         self.problem = problem
         xs= problem.x_pool
         #calculate euclidean distance between x matrix and itself
@@ -63,12 +63,12 @@ class knnModel(model):
         #equation based off of Bayesian Optimal Active Search and Surveying, Garnett et al. 2012 (Equation 7)
         gamma = 0.1
         #create empty array to return
-        predictions = np.empty((np.size(self.problem.x_pool,0),1))
-        predictions[:]=np.nan
+        predictions = np.zeros((np.size(self.problem.x_pool,0),1))
+        #predictions[:]=np.nan
         #iterate over all x values in x_pool
         for i in range(np.size(self.problem.x_pool,0)):
-            if self.problem.y_train[i]==np.nan:
-                
+            if np.isnan(self.problem.y_train[i]):
+
                 #a stores the y_train values of the k-nearest neighbors of x
                 a = np.take(self.problem.y_train,self.knn[i],axis=0)
                 #print("a ",a)
@@ -77,7 +77,7 @@ class knnModel(model):
                 #denominator is the number of non-nan y_train entries of the k-nearest neighbors
 
                 denominator = np.sum(np.invert(nans))
-                print("denominator",denominator)
+                #print("denominator",denominator)
                 #numerator is the sum of all non-nan y_train values of the k-nearest neighbors
                 #numerator = np.dot(nans,self.problem.y_train)
                 numerator = np.nansum(a)

@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 
 class activeLearning(object):
 
-    def __init__(self,random=True):
+    def __init__(self,random=True, visual=False):
         #TODO: make flexible enough to be able to call multiple data generating scripts, each of which should be in current directory
         self.labels_random, self.labels_deterministic, self.points = genData()
+        self.visual = visual
         #self.myData = genData()
         #x_pool = self.mydata[:,0]
 
@@ -34,7 +35,9 @@ class activeLearning(object):
 
         #TODO: improve efficiency!! consider changing to masked version below
         #positive_indices = self.points[labels_deterministic]
-        self.display()
+        
+
+
         positive_indices = [i for i,x in enumerate(self.labels_deterministic) if x>0]
         
         
@@ -42,6 +45,9 @@ class activeLearning(object):
         firstPointValue = self.oracle_function(firstObsIndex)
         #print("first point value:",self.oracle_function(firstObsIndex))
         self.problem.newObservation(firstObsIndex,self.problem.x_pool[firstObsIndex],self.oracle_function(firstObsIndex))
+
+        if self.visual:
+            self.showProblem()
 
         i = 0
         totalrewards = firstPointValue
@@ -55,16 +61,20 @@ class activeLearning(object):
             totalrewards += y
             budget = budget-1
             print(totalrewards)
-            self.display()
-        plt.close()
+            if self.visual:
+                self.addPoint(x_index)
         return totalrewards
 
-    def display(self):
-        plt.clf()
-        plt.scatter(self.points[:,0],self.points[:,1],c=self.labels_deterministic)
-        plt.scatter(self.policy.utility.model.problem.x_train[:,0],self.policy.utility.model.problem.x_train[:,1],c='red')
+    def showProblem(self):
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.scatter(self.points[:,0],self.points[:,1],c=self.labels_deterministic,s=20)
+        #plt.scatter(self.policy.utility.model.problem.x_train[:,0],self.policy.utility.model.problem.x_train[:,1],c='red',s=20)
         #c=self.policy.utility.model.problem.y_train
-        plt.show()
+        plt.pause(0.000001)
+
+    def addPoint(self,x_index):
+        plt.scatter(self.policy.utility.model.problem.x_train[x_index,0],self.policy.utility.model.problem.x_train[x_index,1],c='red',s=20)
+        plt.pause(0.000001)
         
 
 
