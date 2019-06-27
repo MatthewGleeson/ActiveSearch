@@ -21,8 +21,8 @@ class activeLearning(object):
         else:
             self.model = knnModel(self.problem)
 
-        self.utility = oneStep(self.model)
-        self.policy = argMaxPolicy(self.utility)
+        self.utility = oneStep()
+        self.policy = argMaxPolicy(self.model,self.utility)
 
     def oracle_function(self,x_index):
         return self.labels_deterministic[x_index]
@@ -57,23 +57,25 @@ class activeLearning(object):
             print("step ",i)
             x_index,x = self.policy.choose_next()
             y = self.oracle_function(x_index)
-            self.policy.utility.model.problem.newObservation(x_index,x,y)
+            self.policy.model.problem.newObservation(x_index,x,y)
             totalrewards += y
             budget = budget-1
-            print(totalrewards)
+            print("total rewards:",totalrewards)
             if self.visual:
-                self.addPoint(x_index)
+                self.addPoint(x_index,y)
         return totalrewards
 
     def showProblem(self):
         plt.gca().set_aspect('equal', adjustable='box')
         plt.scatter(self.points[:,0],self.points[:,1],c=self.labels_deterministic,s=20)
-        #plt.scatter(self.policy.utility.model.problem.x_train[:,0],self.policy.utility.model.problem.x_train[:,1],c='red',s=20)
-        #c=self.policy.utility.model.problem.y_train
+        
         plt.pause(0.000001)
 
-    def addPoint(self,x_index):
-        plt.scatter(self.policy.utility.model.problem.x_train[x_index,0],self.policy.utility.model.problem.x_train[x_index,1],c='red',s=20)
+    def addPoint(self,x_index,y):
+        if y==0:
+            plt.scatter(self.policy.model.problem.x_train[x_index,0],self.policy.model.problem.x_train[x_index,1],c='red',s=20)
+        else:
+            plt.scatter(self.policy.model.problem.x_train[x_index,0],self.policy.model.problem.x_train[x_index,1],c='green',s=20)
         plt.pause(0.000001)
         
 

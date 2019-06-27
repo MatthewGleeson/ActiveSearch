@@ -44,7 +44,8 @@ class randomModel(model):
 
 class knnModel(model):
     def __init__(self, problem):
-        k = 100
+        k = 8
+        #k=100
         self.problem = problem
         xs= problem.x_pool
         #calculate euclidean distance between x matrix and itself
