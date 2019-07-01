@@ -41,7 +41,14 @@ class activeLearning(object):
         positive_indices = [i for i,x in enumerate(self.labels_deterministic) if x>0]
         
         
-        firstObsIndex = np.random.choice(positive_indices)
+        #firstObsIndex = np.random.choice(positive_indices)
+        firstObsIndex=positive_indices[0]
+        #print k-nearest neighbors of first point
+        
+        #dist, ind = self.model.tree.query(self.model.problem.x_pool[firstObsIndex], k=50)
+
+        print("K-nearest neighbors indices of first point:",self.model.knn[firstObsIndex]+1)
+        print("selected point is index:",firstObsIndex)
         firstPointValue = self.oracle_function(firstObsIndex)
         #print("first point value:",self.oracle_function(firstObsIndex))
         self.problem.newObservation(firstObsIndex,self.problem.x_pool[firstObsIndex],self.oracle_function(firstObsIndex))

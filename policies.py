@@ -21,7 +21,19 @@ class oneStep(utility):
         return 1*model.predict()
         #return probability estimation
 
+class twoStep(utility):
 
+    def __init__(self):
+        pass
+    def getScores(self,model):
+        #updatedModelPos = problem.update(x,1)
+        #updatedModelNeg = problem.update(x,0)
+
+        #secondTerm = [p*oneStep(x_new,updatedModelPos)+(1-p)oneStep(x_new,updatedModelNeg) for x-new in x-pool/x].argmax
+
+        #do I need to calculate x-pool/x here too? if so, then I should probably functionalize it in models.py as a function of the problem
+        return 1*model.predict()
+        #return probability estimation
 
 class policy(object):
     def __init__(self,utility,model):

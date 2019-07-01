@@ -2,10 +2,14 @@
 
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.neighbors import KDTree
+
+
 
 
 class problem(object):
     def __init__(self, x_pool):
+        
         self.x_train = np.empty(np.shape(x_pool)) # nxd
         self.x_train[:]=np.nan
         self.y_train = np.empty((np.size(x_pool,0),1))#nx1
@@ -44,13 +48,22 @@ class randomModel(model):
 
 class knnModel(model):
     def __init__(self, problem):
-        k = 8
+        k = 50
         #k=100
         self.problem = problem
         xs= problem.x_pool
         #calculate euclidean distance between x matrix and itself
         self.dist_matrix = euclidean_distances(xs,xs) # nxn matrix that stores distance between points
 
+        self.tree = KDTree(xs)
+
+        self.dist, self.ind = self.tree.query(xs, k=k+1)
+
+        self.dist = self.dist[:,1:]
+        self.similarities = np.reciprocal(self.dist)
+        self.ind = self.ind[:,1:]
+        
+        print(self.ind[24])
         #sorts indices by lowest distance value, stores the k-lowest for each point
         self.knn = np.argsort(self.dist_matrix, axis=1)[:,1:k+1] # nxk matrix
         #print("knns: ",self.knn)
@@ -61,9 +74,16 @@ class knnModel(model):
 
         #returns probability estimate, Pr(y=1|x,D)
 
+
+
+        #TODO: Add weights based on distance to other points
         #equation based off of Bayesian Optimal Active Search and Surveying, Garnett et al. 2012 (Equation 7)
         gamma = 0.1
         #create empty array to return
+
+        #want to sum up elements in self.dist,
+
+
         predictions = np.zeros((np.size(self.problem.x_pool,0),1))
         #predictions[:]=np.nan
         #iterate over all x values in x_pool
@@ -73,6 +93,11 @@ class knnModel(model):
                 #a stores the y_train values of the k-nearest neighbors of x
                 a = np.take(self.problem.y_train,self.knn[i],axis=0)
                 #print("a ",a)
+
+                multipliers = np.take(self.dist_matrix[i],self.knn[i])
+
+                weighteda = np.multiply(a,multipliers)
+                
                 nans = np.isnan(a)
                 #print("nans ",nans)
                 #denominator is the number of non-nan y_train entries of the k-nearest neighbors
@@ -81,9 +106,17 @@ class knnModel(model):
                 #print("denominator",denominator)
                 #numerator is the sum of all non-nan y_train values of the k-nearest neighbors
                 #numerator = np.dot(nans,self.problem.y_train)
-                numerator = np.nansum(a)
+                #numerator = np.nansum(a)
+
+                #TODO: for some reason numerator and denominator is always getting evaulated to zero, 
+                # there has to be a bug causing this(at least for the neighbors of the first point)
+
+                numerator = np.nansum(weighteda)
                 predictions[i]=(gamma+numerator)/(1+denominator)
 
         #returns nx1 column vector of probabilities
+        neighborPredictions = np.take(predictions,self.knn[i],axis=0)
+
+        #knnnp.savetxt("foo.csv", neighborPredictions, delimiter=",")
         return predictions
 
