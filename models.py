@@ -10,17 +10,32 @@ from sklearn.neighbors import KDTree
 class problem(object):
     def __init__(self, x_pool):
         
-        self.x_train = np.empty(np.shape(x_pool)) # nxd
-        self.x_train[:]=np.nan
-        self.y_train = np.empty((np.size(x_pool,0),1))#nx1
-        self.y_train[:]=np.nan
-        self.x_pool = x_pool  #nxd
+        #self.x_train = np.empty(np.shape(x_pool)) # nxd
+        
+        #self.x_train[:]=np.nan
+        #self.y_train = np.empty((np.size(x_pool,0),1))#nx1
+        #self.y_train[:]=np.nan
+          #nxd
+          
         #x_train is nxd, everything starts at zeros and values get copied over from x_pool when they are observed
         #y_train is nx1, everything starts as zeros and values get filled in with the oracle function
+        self.x_pool = x_pool
+        self.train_ind = []
+        self.observed_labels = []
 
-    def newObservation(self,index,x,y):
-        self.x_train[index]=x
-        self.y_train[index]=y
+    def newObservation(self,index,y):
+        #self.x_train[index]=x
+        #self.y_train[index]=y
+        self.train_ind = np.append(self.train_ind,index)
+        #print("new obsevation created. To train indices, appended index:",index)
+        #print("train indices:",self.train_ind)
+        self.observed_labels= np.append(self.observed_labels,y)
+    
+    def basicSelector(self):
+        #most basic version of selector, returns list of unlabeled indices
+        test_ind = range(np.size(self.x_pool,0))
+        test_ind= np.delete(test_ind,self.train_ind)
+        return test_ind
 
 
 
@@ -60,9 +75,8 @@ class knnModel(model):
         self.dist, self.ind = self.tree.query(xs, k=k+1)
 
         self.dist = self.dist[:,1:]
-        self.similarities = np.reciprocal(self.dist)
         self.ind = self.ind[:,1:]
-        
+        self.similarities = np.reciprocal(self.dist)
         print(self.ind[24])
         #sorts indices by lowest distance value, stores the k-lowest for each point
         self.knn = np.argsort(self.dist_matrix, axis=1)[:,1:k+1] # nxk matrix
@@ -83,10 +97,78 @@ class knnModel(model):
 
         #want to sum up elements in self.dist,
 
-
-        predictions = np.zeros((np.size(self.problem.x_pool,0),1))
+        test_ind = self.problem.basicSelector()
+        predictions = np.zeros((np.size(test_ind,0),1))
+        #print("train indices:",self.problem.train_ind)
+        #print("neighbor indices:",self.ind[test_ind[0]])
         #predictions[:]=np.nan
         #iterate over all x values in x_pool
+
+        for i in range(np.size(test_ind,0)):
+            neighborIndices=self.ind[test_ind[i]]
+            
+            #list of indices that were nearest neighbors to this point
+            #first, get list of indices in nearest neighbors that have been observed
+            
+            #predictions[i]= self.ind
+            #indicesInception stores the row index of the elements in self.similarities and self.ind that we want
+
+            #print(all3)
+
+            #training indices with positive labels:
+            postrainindex_index = np.where(self.problem.observed_labels == 1)[0]
+
+            posTrainIndices = np.take(self.problem.train_ind,postrainindex_index)
+
+            indicesInception_justPos = np.intersect1d(neighborIndices, posTrainIndices, assume_unique=True, return_indices=True)[1]
+
+            indicesInception_posAndNeg = np.intersect1d(neighborIndices, self.problem.train_ind, assume_unique=True, return_indices=True)[1]
+
+
+            #if indicesInception.size !=0:
+            #    print(indicesInception)
+
+            #The way that Shali did it was by making a matrix and using both sets of indices to pick the valuesd
+            
+            toSum = np.take(self.similarities[test_ind[i]], indicesInception_justPos)
+
+            #should be summing only those with positive labels!!! currently summing distances of positive and negative labels,
+            #  which is why it's only exploring near labeled points rather than POSITIVE labeled points
+
+            numerator = gamma + np.sum(toSum)
+
+
+            
+            denominator = 1+indicesInception_posAndNeg.size #<-paper implementation! TODO: this is wrong, not correct implementation of paper equation
+            #I am summing over the number of labeled points, instead of the number of nearest neighbors
+
+            #TODO: Decide between versions of denominator!!! Shali normalizes by dividing by the sum of all probabilities for the classes for each point
+            #denominator = .9+numerator #<-Shali's implementaion!
+            #TODO: above is the line for the denominator according to shali's code
+
+            #sum the items in self.similarities whose index is same as the items in self.ind that are also in train_ind
+
+
+            #goal: sum up similarities of neighbors in train_indices(means they have been observed)
+
+            #next, divide by 1+(# of neighbors in train_indices)
+
+            predictions[i]=np.divide(numerator,denominator)
+
+
+        #stitched = np.concatenate((test_ind, predictions), axis=1)
+        if self.problem.train_ind.size == 1:
+            np.savetxt("test_ind.csv", test_ind,fmt='%.2f', delimiter=",")
+            np.savetxt("predictions.csv", predictions,fmt='%.6f', delimiter=",")
+            arrayOfPickers = [727,1111,1692,2203,690,1909,2208,2268,222,444,588,2008,278,393,695,1164,1511,1547,1769,2283,159,915,1497,2469,579,990,1823,2320,682,718,1117,1504,1883,1978,2005,2179,158,274,1538,1627,1712,2014,2098,2441,153,722,1625,2010, 70, 149]
+            arrayOfPickers = np.asarray(arrayOfPickers)-2
+            print("PICKERS",arrayOfPickers)
+            nearestprobabilities= np.take(predictions,arrayOfPickers)
+            np.savetxt("nearestprobs.csv", nearestprobabilities,fmt='%.6f', delimiter=",")
+
+        return predictions
+
+        """
         for i in range(np.size(self.problem.x_pool,0)):
             if np.isnan(self.problem.y_train[i]):
 
@@ -117,6 +199,8 @@ class knnModel(model):
         #returns nx1 column vector of probabilities
         neighborPredictions = np.take(predictions,self.knn[i],axis=0)
 
-        #knnnp.savetxt("foo.csv", neighborPredictions, delimiter=",")
+        #knn
+        # np.savetxt("foo.csv", neighborPredictions, delimiter=",")
         return predictions
+        """
 

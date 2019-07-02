@@ -51,11 +51,15 @@ class argMaxPolicy(policy):
     def choose_next(self):
         
         scores = self.utility.getScores(self.model)
-        chosen_x_index = np.argmax(scores)
+        max_index = np.argmax(scores)
+        chosen_x_index = self.model.problem.basicSelector()[max_index]
+        
+
         #print("index value:",chosen_x_index)
         #print("largest score value:",scores[chosen_x_index])
         #print("next index's score value:",scores[chosen_x_index+1])
         #print("chooses x index:",chosen_x_index)
         #print("with y_train value:",self.utility.model.problem.y_train[chosen_x_index])
-        chosen_x = self.model.problem.x_pool[chosen_x_index]
-        return chosen_x_index, chosen_x
+
+        #chosen_x = self.model.problem.x_pool[chosen_x_index]
+        return chosen_x_index
