@@ -47,7 +47,7 @@ class activeLearning(object):
         
         #dist, ind = self.model.tree.query(self.model.problem.x_pool[firstObsIndex], k=50)
 
-        print("K-nearest neighbors indices of first point:",self.model.knn[firstObsIndex]+1)
+        print("K-nearest neighbors indices of first point:",self.model.ind[firstObsIndex]+1)
         print("selected point is index:",firstObsIndex)
         firstPointValue = self.oracle_function(firstObsIndex)
         #print("first point value:",self.oracle_function(firstObsIndex))

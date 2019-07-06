@@ -26,8 +26,20 @@ class twoStep(utility):
     def __init__(self):
         pass
     def getScores(self,model):
-        #updatedModelPos = problem.update(x,1)
+
+        for a in model.problem.basicSelector():
+             updatedModelPos = problem.update(x,1)
+        #updatedModelPos = model.update(x,1)
+        #update the problem assuming the next choice is positive
+       
+        #I'm going to have to update the model for every point
+        #so that I can consider the potential observations I could make in 2-step 
+
+
+        
+
         #updatedModelNeg = problem.update(x,0)
+        #update the problem assuming the next choice is negative
 
         #secondTerm = [p*oneStep(x_new,updatedModelPos)+(1-p)oneStep(x_new,updatedModelNeg) for x-new in x-pool/x].argmax
 
