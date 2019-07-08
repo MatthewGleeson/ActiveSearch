@@ -1,9 +1,6 @@
 """Policies for active search"""
 
 
-from models import *
-
-
 class Utility(object):
     def __init__(self):
         pass
