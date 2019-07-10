@@ -1,7 +1,7 @@
 
 function [labels_random, labels_deterministic,problem]= generate_world_driver()
 
-addpath(genpath('./gpml'))
+addpath(genpath('../gpml'))
 side_length = 50;
 latent_mean = -1;
 length_scale = 3;
@@ -25,7 +25,15 @@ labels_deterministic = probabilities > 0.7;
 % figure; imagesc(reshape(labels_deterministic, side_length, side_length));
 
 %output = problem
+
+
+dlmwrite('labels_deterministic.txt',labels_deterministic);
+dlmwrite('labels_random.txt',labels_random)
+dlmwrite('points.txt',points,'delimiter',' ')
+
+
 end
+
 
 
 

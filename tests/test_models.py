@@ -1,4 +1,5 @@
 from active_search.models import *
+from active_search.createdata import genData
 import numpy as np
 import pytest
 
@@ -42,7 +43,7 @@ class TestToyProblem:
     def test_oracle_function(self):
         problem = ToyProblem()
         assert problem.oracle_function(0) == 0.0
-        assert problem.oracle_function(6) == 1.0
+        assert problem.oracle_function(24) == 1.0
         assert problem.oracle_function(2462) == 1.0
         assert problem.oracle_function(2463) == 0.0
 
@@ -108,7 +109,7 @@ class TestRandomModel:
         assert abs(predictions.mean() - 0.5) < 0.1
 
 
-class TestKnnMolde:
+class TestKnnModel:
     def test_predict(self):
         problem = ToyProblem()
         model = KnnModel(problem)
@@ -125,7 +126,7 @@ class TestKnnMolde:
                   [2345, 292, 0.4472],
                   [2345, 373, 0.2774],
                   [2345, 384, 0.5000],
-                  # [2345, 412, 0.2425], This one is not working
+                  [2345, 775, 0.2425 ],# [2345, 412, 0.2425], This one is not working
                   [2345, 458, 0.4472],
                   [2345, 492, 0.2500],
                   [2345, 503, 0.4472],
@@ -170,6 +171,7 @@ class TestKnnMolde:
 
         for i, j, value in values:
             diff = model.weight_matrix[i - 1, j - 1] - value
+            
             assert abs(diff) < tolerance, (i, j)
 
         train_indices = [2004, 2200, 1590]
@@ -193,4 +195,5 @@ class TestKnnMolde:
         predictions = model.predict(data, test_indices)
         for index, probability in values:
             diff = predictions[index] - probability
+            
             assert abs(diff) < tolerance, (index, probability)

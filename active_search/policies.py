@@ -1,5 +1,6 @@
 """Policies for active search"""
-
+#from models import *
+import numpy as np
 
 class Utility(object):
     def __init__(self):
@@ -15,7 +16,10 @@ class OneStep(Utility):
         pass
 
     def get_scores(self, model, data, test_indices):
-        return model.predict(data, test_indices)
+        prediction = model.predict(data, test_indices)
+    
+        return prediction
+        
         # return probability estimation
 
 
@@ -26,7 +30,7 @@ class TwoStep(Utility):
 
     def get_scores(self, model):
         pass
-
+        
         # for a in model.problem.basicSelector():
         #      updatedModelPos = problem.update(x,1)
 
@@ -59,10 +63,12 @@ class ArgMaxPolicy(Policy):
 
     def choose_next(self, data, test_indices):
 
-        scores = self.utility.get_scores(self.model, test_indices)
-        max_index = np.argmax(scores)
-        chosen_x_index = test_indices[max_index]
+        scores = self.utility.get_scores(self.model,data,test_indices)
 
+        max_index = np.argmax(scores)
+
+        chosen_x_index = test_indices[max_index]
+        
         #print("index value:",chosen_x_index)
         #print("largest score value:",scores[chosen_x_index])
         #print("next index's score value:",scores[chosen_x_index+1])

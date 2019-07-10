@@ -1,22 +1,25 @@
 """Active search code for various policies"""
 
-from policies import *
+from active_search.policies import *
 import matplotlib.pyplot as plt
+from active_search.models import *
 
 
 class ActiveLearning(object):
 
-    def __init__(self, random=True, visual=False):
+    def __init__(self, random=True, visual=False, problem = ToyProblem):
         self.visual = visual
-        self.problem = Problem(self.points)
+        self.problem = problem()
 
         if random:
-            self.model = randomModel(self.problem)
+            self.model = RandomModel()
         else:
-            self.model = knnModel(self.problem)
+            self.model = KnnModel(self.problem)
+            print("KNN MODEL SELECTED!!!")
 
         self.utility = OneStep()
-        self.policy = ArgMaxPolicy(self.model, self.utility)
+        self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
+        self.selector = UnlabelSelector()
 
     def run(self, budget):
 
@@ -24,24 +27,28 @@ class ActiveLearning(object):
         # look at positives, select random point from those
 
         # TODO: improve efficiency!! consider changing to masked version below
-        #positive_indices = self.points[labels_deterministic]
+        #       positive_indices = self.points[labels_deterministic]
 
-        positive_indices = [i for i, x in enumerate(
-            self.labels_deterministic) if x > 0]
+        #TODO: make this call more general, not all problems will
+        #      have labels_deterministic
+        positive_indices = [i for i, x in 
+            enumerate(self.problem.labels_deterministic) if x > 0]
 
         #firstObsIndex = np.random.choice(positive_indices)
+        print("positive indices list:",positive_indices[0:10])
+        is24 = np.where(positive_indices==24)
+        print("24th index:",is24)
         firstObsIndex = positive_indices[0]
+
         # print k-nearest neighbors of first point
 
-        #dist, ind = self.model.tree.query(self.model.problem.x_pool[firstObsIndex], k=50)
-
+        currentData = Data()
         print("K-nearest neighbors indices of first point:",
-              self.model.knn[firstObsIndex] + 1)
+              self.model.ind[firstObsIndex] + 1)
         print("selected point is index:", firstObsIndex)
-        firstPointValue = self.oracle_function(firstObsIndex)
+        firstPointValue = self.problem.oracle_function(firstObsIndex)
         #print("first point value:",self.oracle_function(firstObsIndex))
-        self.problem.newObservation(
-            firstObsIndex, self.oracle_function(firstObsIndex))
+        currentData.new_observation(firstObsIndex, firstPointValue)
 
         if self.visual:
             self.show_problem()
@@ -53,9 +60,15 @@ class ActiveLearning(object):
             # model.update
             i = i + 1
             print("step ", i)
-            x_index = self.policy.choose_next()
-            y = self.oracle_function(x_index)
-            self.policy.model.problem.newObservation(x_index, y)
+            test_indices = self.selector.filter(currentData, 
+                                             self.problem.points)
+
+            x_index = self.policy.choose_next(currentData,test_indices)
+            
+            print("selected index: ",x_index)
+            y = self.problem.oracle_function(x_index)
+            currentData.new_observation(x_index, y)
+            #print(currentData.train_indices)
             totalrewards += y
             budget = budget - 1
             print("total rewards:", totalrewards)
@@ -65,19 +78,21 @@ class ActiveLearning(object):
 
     def show_problem(self):
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.scatter(self.points[:, 0], self.points[:, 1],
-                    c=self.labels_deterministic, s=20)
-
-        plt.pause(0.000001)
+        plt.scatter(self.problem.points[:, 0], self.problem.points[:, 1],
+                    c=self.problem.labels_deterministic, s=20)
+        
+        plt.pause(0.001)
 
     def add_points(self, x_index, y):
         if y == 0:
-            plt.scatter(self.policy.model.problem.x_pool[x_index, 0],
-                        self.policy.model.problem.x_pool[x_index, 1], c='red', s=20)
+            plt.scatter(self.problem.points[x_index, 0],
+                        self.problem.points[x_index, 1],
+                        c='red', s=20)
         else:
-            plt.scatter(self.policy.model.problem.x_pool[x_index, 0],
-                        self.policy.model.problem.x_pool[x_index, 1], c='green', s=20)
-        plt.pause(0.000001)
+            plt.scatter(self.problem.points[x_index, 0],
+                        self.problem.points[x_index, 1],
+                        c='green', s=20)
+        plt.pause(0.001)
 
 
 class ActiveLearningExperiment(object):

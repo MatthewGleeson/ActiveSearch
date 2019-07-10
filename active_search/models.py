@@ -89,6 +89,7 @@ class UnlabelSelector(Selector):
     def filter(self, data, points):
         test_indices = range(np.size(points, 0))
         test_indices = np.delete(test_indices, data.train_indices)
+
         return test_indices
 
 
@@ -107,6 +108,7 @@ class Model(object):
 
 
 class RandomModel(Model):
+    
     def predict(self, data, test_indices):
         # returns a nx1 array of random values between 0 and 1
         n = len(test_indices)
@@ -123,7 +125,7 @@ class KnnModel(Model):
         self.dist = self.dist[:, 1:]
         self.ind = self.ind[:, 1:]
         self.similarities = np.reciprocal(self.dist)
-
+    
         values = self.similarities.flatten()
         # row = np.tile(np.arange(0,n), (k,1)).T.flatten()
         row = np.kron(np.arange(0, n), np.ones(((1, k)))).flatten()
@@ -133,8 +135,7 @@ class KnnModel(Model):
             (values, (row, column)), shape=(n, n)
         )
 
-        # np.savetxt("sparseMatrix.csv", self.weight_matrix,
-        #            fmt='%.2f', delimiter=",")
+        # 
         # sorts indices by lowest distance value, stores the k-lowest for each point
         # self.knn = np.argsort(self.dist_matrix, axis=1)[:,1:k+1] # nxk matrix
         # print("knns: ",self.knn)
@@ -148,7 +149,8 @@ class KnnModel(Model):
         # create empty array to return
 
         # want to sum up elements in self.dist,
-
+        #toTest = [i for i in enumerate(test_indices)]
+        #print(toTest)
         predictions = np.zeros((len(test_indices), 1))
         # print("train indices:",self.problem.train_ind)
         # print("neighbor indices:",self.ind[test_ind[0]])
@@ -166,19 +168,17 @@ class KnnModel(Model):
         observed_labels = np.asarray(data.observed_labels)
         train_indices = np.asarray(data.train_indices)
 
+
         mask = observed_labels == 1
         sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
         # sparseMatrixColumnIndicesPos=sparseMatrixColumnIndicesPos.astype(int)
-
-        print(sparseMatrixColumnIndicesPos)
 
         positiveSum = self.weight_matrix[:,
                                          sparseMatrixColumnIndicesPos].sum(axis=1)
 
         numerator = gamma + positiveSum
 
-        sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(
-            int)
+        sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
 
         negativeSum = self.weight_matrix[:,
                                          sparseMatrixColumnIndicesNeg].sum(axis=1)
@@ -186,6 +186,14 @@ class KnnModel(Model):
 
         predictions = numerator / denominator
 
-        # row-wise sum up the elements in self.weight_matrix whose indices are in (self.problem.train_ind minus
+        predictions = np.delete(predictions,train_indices,axis=0)
+        
+        #begin debug code
 
+        
+        #print(np.where(predictions == diffs ,predictions))
+
+        # row-wise sum up the elements in self.weight_matrix whose indices are in (self.problem.train_ind minus
+        #np.savetxt('predictions.txt', predictions, delimiter=' ')
+        #end debug code
         return predictions
