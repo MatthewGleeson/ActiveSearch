@@ -7,9 +7,19 @@ from active_search.models import *
 
 class ActiveLearning(object):
 
-    def __init__(self, random=True, visual=False, problem = ToyProblem):
+    def __init__(self, random=True, visual=False, problem = ToyProblem,utility = 2):
         self.visual = visual
+        self.random = random
         self.problem = problem()
+
+        if utility== 1:
+            self.utility = OneStep()
+        elif utility == 2:
+            self.utility = TwoStep()
+            self.random = False
+            random = False
+            print("two-step utility selected. Overriding random in favor of argmax")
+        #else make it ENS!!!
 
         if random:
             self.model = RandomModel()
@@ -17,7 +27,8 @@ class ActiveLearning(object):
             self.model = KnnModel(self.problem)
             print("KNN MODEL SELECTED!!!")
 
-        self.utility = OneStep()
+        
+        self.iteration = 0
         self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
         self.selector = UnlabelSelector()
 
@@ -57,13 +68,17 @@ class ActiveLearning(object):
         i = 0
         totalrewards = firstPointValue
         while budget >= 0:
+            self.iteration = self.iteration + 1
             # model.update
             i = i + 1
             print("step ", i)
+            print("budget",budget)
             test_indices = self.selector.filter(currentData, 
                                              self.problem.points)
-
-            x_index = self.policy.choose_next(currentData,test_indices)
+            
+            
+            x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points,self.model.weight_matrix)
+            
             
             print("selected index: ",x_index)
             y = self.problem.oracle_function(x_index)
@@ -71,6 +86,7 @@ class ActiveLearning(object):
             #print(currentData.train_indices)
             totalrewards += y
             budget = budget - 1
+            
             print("total rewards:", totalrewards)
             if self.visual:
                 self.add_points(x_index, y)
@@ -93,6 +109,8 @@ class ActiveLearning(object):
                         self.problem.points[x_index, 1],
                         c='green', s=20)
         plt.pause(0.001)
+        filename = "imgDirectory/progressive"+str(self.iteration)+".png"
+        plt.savefig(filename)
 
 
 class ActiveLearningExperiment(object):
