@@ -103,7 +103,7 @@ class ActiveLearning(object):
         if y == 0:
             plt.scatter(self.problem.points[x_index, 0],
                         self.problem.points[x_index, 1],
-                        c='red', s=20)
+                        c='m', s=20)
         else:
             plt.scatter(self.problem.points[x_index, 0],
                         self.problem.points[x_index, 1],

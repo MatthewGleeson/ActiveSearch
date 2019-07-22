@@ -92,6 +92,32 @@ class UnlabelSelector(Selector):
 
         return test_indices
 
+class TwoStepPruningSelector(Selector):
+
+    def __init__(self):
+        self.selector = UnlabelSelector()
+        pass
+
+    def filter(self, data, points):
+
+
+        #test_indices = range(np.size(points, 0))
+        #test_indices = np.delete(test_indices, data.train_indices)
+
+        unlabeled_ind = self.selector.filter(data, points)
+        
+        probabilities = model.predict(data,unlabeled_ind)
+
+
+
+
+        #calculate 2-step lower bound by 
+        # assume highest probability point is chosen, then calculate the next step's expected utilities 
+        # calculating probabilities of the points, then computing expected utility from those probabilities
+
+
+        return test_indices
+
 
 class Model(object):
     def __init__(self):

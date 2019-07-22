@@ -15,7 +15,10 @@ class TestOneStep:
     data = Mock()
     test_indices = Mock()
 
-    scores = utility.get_scores(model, data, test_indices)
+    budget = 100
+
+
+    scores = utility.get_scores(model, data, test_indices,budget,problem.points,model.weight_matrix)
     model.predict.assert_called_once_with(data, test_indices)
     for score, probability in zip(scores, problem.probabilities):
       assert score == probability
@@ -32,8 +35,8 @@ class TestTwoStep:
 
     data = Mock()
     test_indices = Mock()
-
-    scores = utility.get_scores(model, data, test_indices)
+    budget = 100
+    scores = utility.get_scores(model, data, test_indices,budget,problem.points,model.weight_matrix)
 
     # computing 2-step score
     epsilon, gamma = problem.probabilities[0], problem.probabilities[2]
