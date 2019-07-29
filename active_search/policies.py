@@ -40,7 +40,7 @@ class Utility(object):
     def __init__(self):
         pass
 
-    def get_scores(self, model, data, test_indices,budget,points,weights):
+    def get_scores(self, model, data, test_indices,budget,points):
         pass
 
 
@@ -49,7 +49,7 @@ class OneStep(Utility):
     def __init__(self):
         pass
 
-    def get_scores(self, model, data, test_indices,budget,points,weights):
+    def get_scores(self, model, data, test_indices,budget,points):
         expected_utilities = model.predict(data, test_indices)
         return expected_utilities
         # return probability estimation
@@ -61,20 +61,20 @@ class TwoStep(Utility):
         self.selector = UnlabelSelector()
         pass
 
-    def get_scores(self, model,data,test_indices,budget,points,weights):
+    def get_scores(self, model,data,test_indices,budget,points):
 
         #TODO: do I need to do something if budget <=1?
         
         #compute p
         num_test = test_indices.size
+        
         expected_utilities = np.zeros((num_test,1))
 
         unlabeled_ind = self.selector.filter(data, points)
         probabilities = model.predict(data,unlabeled_ind)
 
         probabilities_including_negative = np.append(probabilities,1-probabilities,axis=1)
-        if budget == 1500:
-            np.savetxt('probabilities_including_negative.txt', probabilities_including_negative, delimiter=' ',fmt='%1.3f')
+
         for i in range(num_test):
             this_test_ind = test_indices[i].astype(int)
 
@@ -92,23 +92,11 @@ class TwoStep(Utility):
                 fake_data.observed_labels = fake_observed_labels
                 fake_data.train_indices = fake_train_ind
                 
-                pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind))+ j+ np.size(data.train_indices) #TODO: should I add "+j"?
+                pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind)) + j+ np.size(data.train_indices)
                 
             expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
-        
-        #if budget == 1500:
-        #    np.savetxt('twostepfirstprobs.txt', expected_utilities, delimiter=' ',fmt='%1.3f')
-        #    np.savetxt('nearest_neighbors',np.nonzero(weights[24,:]),delimiter=' ',fmt='%1.3f')
-            
-        return expected_utilities
 
-        
-        #for x in p:
-            #p1 = prob(D u (x,1)) w/o x
-            #p1* = max(p1)
-            #p0 = prob(D u (x,0)) w/o x
-            #p0* = max(p0)
-            #expected_utilities[x] = p + p(p1*) + (1-p)p0*
+        return expected_utilities
         
 
 
@@ -129,9 +117,9 @@ class ArgMaxPolicy(Policy):
         self.model = model
         self.utility = utility
 
-    def choose_next(self, data, test_indices, budget,points,weights=False):
+    def choose_next(self, data, test_indices, budget,points):
 
-        scores = self.utility.get_scores(self.model,data,test_indices,budget,points,weights)
+        scores = self.utility.get_scores(self.model,data,test_indices,budget,points)
 
         max_index = np.argmax(scores)
 

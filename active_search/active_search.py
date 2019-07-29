@@ -30,7 +30,7 @@ class ActiveLearning(object):
         
         self.iteration = 0
         self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
-        self.selector = UnlabelSelector()
+        self.selector = TwoStepPruningSelector()
 
     def run(self, budget):
 
@@ -73,11 +73,11 @@ class ActiveLearning(object):
             i = i + 1
             print("step ", i)
             print("budget",budget)
-            test_indices = self.selector.filter(currentData, 
-                                             self.problem.points)
+            test_indices = self.selector.filter(self.model,self.policy, currentData, 
+                                             self.problem.points,self.problem)
+           
             
-            
-            x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points,self.model.weight_matrix)
+            x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points)
             
             
             print("selected index: ",x_index)
@@ -103,7 +103,7 @@ class ActiveLearning(object):
         if y == 0:
             plt.scatter(self.problem.points[x_index, 0],
                         self.problem.points[x_index, 1],
-                        c='m', s=20)
+                        c='red', s=20)
         else:
             plt.scatter(self.problem.points[x_index, 0],
                         self.problem.points[x_index, 1],

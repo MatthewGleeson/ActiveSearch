@@ -1,10 +1,18 @@
 """Models for active search"""
 
 import numpy as np
+import copy
 from active_search.createdata import genData
 from scipy.sparse import csr_matrix
+
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.neighbors import KDTree
+
+#TODO: remove this line after validating with matlab code
+from scipy.io import savemat
+import sys
+
+
 
 
 class Data(object):
@@ -98,23 +106,97 @@ class TwoStepPruningSelector(Selector):
         self.selector = UnlabelSelector()
         pass
 
-    def filter(self, data, points):
+    
+    def filter(self, model, policy, data, points, problem):
+        
+        def expected_loss_lookahead(model,data, this_test_ind, test_indices, 
+                                    probabilities, points):
 
+            true_index = test_indices[this_test_ind]
+            loss_probabilities = probabilities[this_test_ind]
+            probabilities_including_negative = np.append(loss_probabilities,
+                                                    1-loss_probabilities,axis=1)
+
+            fake_train_ind = np.append(data.train_indices,true_index)
+            fake_test_ind = np.delete(test_indices,this_test_ind)
+
+            pstar = np.zeros((2,1))
+
+            for j in range(2):
+                
+                fake_observed_labels = np.append(data.observed_labels,j)
+                fake_data = copy.deepcopy(data)
+                fake_data.observed_labels = fake_observed_labels
+                fake_data.train_indices = fake_train_ind
+                    
+                pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind)) + j
+
+            expected_utilities= np.matmul(probabilities_including_negative,pstar)
+            
+            return expected_utilities
+
+
+        def knnbound(model, data, points, problem, test_indices, num_positives):
+            
+            observed_labels = np.asarray(data.observed_labels)
+            train_indices = np.asarray(data.train_indices)
+            mask = observed_labels == 1
+            sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
+            sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
+
+
+            max_weights = np.max(model.weight_matrix, axis = 1).A
+            print(max_weights.shape)
+            max_weight = np.amax(max_weights[test_indices.astype(int)])
+
+            successes = model.weight_matrix[test_indices,:][:,
+                                         sparseMatrixColumnIndicesPos].sum(axis=1)
+            
+            failures = model.weight_matrix[test_indices,:][:,
+                                         sparseMatrixColumnIndicesNeg].sum(axis=1)
+
+            max_alpha = 0.1 + successes + num_positives * max_weight
+
+            min_beta = .9 + failures
+
+            #from knn code
+
+            bound = np.amax(np.divide(max_alpha,(max_alpha+min_beta)))
+            print("bound is:",bound)
+            
+            return bound
 
         #test_indices = range(np.size(points, 0))
         #test_indices = np.delete(test_indices, data.train_indices)
-
+        
         unlabeled_ind = self.selector.filter(data, points)
+
+        test_indices = unlabeled_ind
         
         probabilities = model.predict(data,unlabeled_ind)
 
+        highest_prob_test_index = np.argmax(probabilities)
+        highest_prob_test_ind = test_indices[highest_prob_test_index]
 
+        #dummy_test_ind = np.array([highest_prob_test_ind])
 
+        p_prime = expected_loss_lookahead(model,data,highest_prob_test_index,test_indices,probabilities, points)
 
-        #calculate 2-step lower bound by 
-        # assume highest probability point is chosen, then calculate the next step's expected utilities 
-        # calculating probabilities of the points, then computing expected utility from those probabilities
+        print("p_prime: ",p_prime)
 
+        p_star_zero = knnbound(model, data, points, problem, test_indices, 0)
+        p_star_one = knnbound(model, data, points, problem, test_indices, 1)
+        optimal_lower_bound = np.divide((p_prime - p_star_zero),(p_star_one-p_star_zero+1))
+        
+        print("optimal_lower_bound:", optimal_lower_bound)
+
+        true_bound = min(optimal_lower_bound, probabilities[highest_prob_test_index])
+        test_ind_mask = probabilities>true_bound
+        test_ind_mask = np.squeeze(np.asarray(test_ind_mask))
+
+        test_indices = test_indices[test_ind_mask]
+        print("test_ind:",test_indices)
+        #sys.exit()
 
         return test_indices
 
@@ -161,7 +243,14 @@ class KnnModel(Model):
             (values, (row, column)), shape=(n, n)
         )
 
-        # 
+        #TODO: remove below line after done testing
+        #savemat('weights', {'weights':self.weight_matrix})
+        #print("nearest neighbors:", self.ind[24])
+        #savemat('ind', {'ind':self.ind.T})
+        #savemat('similarities', {'similarities':self.similarities.T})
+        
+
+
         # sorts indices by lowest distance value, stores the k-lowest for each point
         # self.knn = np.argsort(self.dist_matrix, axis=1)[:,1:k+1] # nxk matrix
         # print("knns: ",self.knn)
