@@ -192,6 +192,7 @@ class TwoStepPruningSelector(Selector):
 
         true_bound = min(optimal_lower_bound, probabilities[highest_prob_test_index])
         test_ind_mask = probabilities>true_bound
+        
         test_ind_mask = np.squeeze(np.asarray(test_ind_mask))
 
         test_indices = test_indices[test_ind_mask]
@@ -266,7 +267,7 @@ class KnnModel(Model):
         # want to sum up elements in self.dist,
         #toTest = [i for i in enumerate(test_indices)]
         #print(toTest)
-        predictions = np.zeros((len(test_indices), 1))
+        #predictions = np.zeros((len(test_indices), 1))
         # print("train indices:",self.problem.train_ind)
         # print("neighbor indices:",self.ind[test_ind[0]])
         # predictions[:]=np.nan
@@ -288,20 +289,18 @@ class KnnModel(Model):
         sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
         # sparseMatrixColumnIndicesPos=sparseMatrixColumnIndicesPos.astype(int)
 
-        positiveSum = self.weight_matrix[:,
-                                         sparseMatrixColumnIndicesPos].sum(axis=1)
+        positiveSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesPos].sum(axis=1)
 
         numerator = gamma + positiveSum
 
         sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
 
-        negativeSum = self.weight_matrix[:,
-                                         sparseMatrixColumnIndicesNeg].sum(axis=1)
+        negativeSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesNeg].sum(axis=1)
         denominator = 1 + positiveSum + negativeSum
 
         predictions = numerator / denominator
 
-        predictions = np.delete(predictions,train_indices,axis=0)
+        #predictions = np.delete(predictions,train_indices,axis=0)
         
         #begin debug code
 

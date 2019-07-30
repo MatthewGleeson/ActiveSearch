@@ -50,6 +50,8 @@ class ActiveLearning(object):
         is24 = np.where(positive_indices==24)
         print("24th index:",is24)
         firstObsIndex = positive_indices[0]
+        #TODO: test using random selections of points
+        #firstObsIndex = [25,178,221,240]
 
         # print k-nearest neighbors of first point
 

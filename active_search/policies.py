@@ -5,6 +5,7 @@ import copy
 from active_search.models import UnlabelSelector
 
 
+
 def merge_sort(p, q, top_ind, budget):
     n = q.size
     sum_to_return = 0
@@ -71,32 +72,38 @@ class TwoStep(Utility):
         expected_utilities = np.zeros((num_test,1))
 
         unlabeled_ind = self.selector.filter(data, points)
-        probabilities = model.predict(data,unlabeled_ind)
+        probabilities = model.predict(data,test_indices)
 
         probabilities_including_negative = np.append(probabilities,1-probabilities,axis=1)
-
+        
+        #TODO: unedit this line!
+        fake_data = copy.deepcopy(data)
+        
         for i in range(num_test):
             this_test_ind = test_indices[i].astype(int)
 
             fake_train_ind = np.append(data.train_indices,this_test_ind)
             
-            fake_test_ind = np.delete(test_indices,i)
+            fake_test_ind = np.delete(unlabeled_ind,i)
 
             pstar = np.zeros((2,1))
 
             for j in range(2):
-            
-                fake_observed_labels = np.append(data.observed_labels,j)
+                #TODO: move deepcopy outside of both for loops
+                # fake_data.new_observation()
 
-                fake_data = copy.deepcopy(data)
-                fake_data.observed_labels = fake_observed_labels
+                #fake_data = copy.deepcopy(data)
+                fake_data.observed_labels = np.append(data.observed_labels,j)
                 fake_data.train_indices = fake_train_ind
                 
-                pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind)) + j+ np.size(data.train_indices)
-                
-            expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
+                #pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind)) + j + np.size(data.train_indices)
+                pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind))
 
-        return expected_utilities
+            #expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
+            expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
+        #import pdb; pdb.set_trace()
+        
+        return np.size(data.train_indices) + probabilities + expected_utilities
         
 
 
