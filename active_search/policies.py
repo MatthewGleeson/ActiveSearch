@@ -4,6 +4,7 @@ import numpy as np
 import copy
 from active_search.models import UnlabelSelector
 
+import sys
 
 
 def merge_sort(p, q, top_ind, budget):
@@ -89,23 +90,67 @@ class TwoStep(Utility):
             pstar = np.zeros((2,1))
 
             for j in range(2):
-                #TODO: move deepcopy outside of both for loops
-                # fake_data.new_observation()
-
-                #fake_data = copy.deepcopy(data)
+                
                 fake_data.observed_labels = np.append(data.observed_labels,j)
                 fake_data.train_indices = fake_train_ind
                 
-                #pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind)) + j + np.size(data.train_indices)
+                
                 pstar[1-j][0] = np.amax(model.predict(fake_data,fake_test_ind))
 
-            #expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
             expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
-        #import pdb; pdb.set_trace()
         
         return np.size(data.train_indices) + probabilities + expected_utilities
         
+class ENS(Utility):
 
+    def __init__(self):
+        self.selector = UnlabelSelector()
+        pass
+
+    def get_scores(self, model,data,test_indices,budget,points):
+        
+        #TODO: do I need to do something if budget <=1?
+        
+        
+        num_test = test_indices.size
+
+        expected_utilities = np.zeros((num_test,1))
+
+        unlabeled_ind = self.selector.filter(data, points)
+        probabilities = model.predict(data,test_indices)
+
+        probabilities_including_negative = np.append(probabilities,1-probabilities,axis=1)
+        
+        #TODO: unedit this line!
+        fake_data = copy.deepcopy(data)
+        
+        for i in range(num_test):
+            this_test_ind = test_indices[i].astype(int)
+
+            fake_train_ind = np.append(data.train_indices,this_test_ind)
+            
+            fake_test_ind = np.delete(unlabeled_ind,i)
+
+            pstar = np.zeros((2,1))
+
+            for j in range(2):
+                
+                fake_data.observed_labels = np.append(data.observed_labels,j)
+                fake_data.train_indices = fake_train_ind
+                
+                
+
+                pstar[1-j][0] = np.sum(model.predict(fake_data,fake_test_ind).argsort()[-budget:][::-1])
+                
+
+            
+            expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
+
+        utilities = np.size(data.train_indices) + probabilities + expected_utilities
+        #np.savetxt('utilities.txt', utilities, delimiter=' ')
+        #sys.exit()
+
+        return utilities
 
 class Policy(object):
     def __init__(self, utility, model):
@@ -125,7 +170,9 @@ class ArgMaxPolicy(Policy):
         self.utility = utility
 
     def choose_next(self, data, test_indices, budget,points):
-
+        
+        if test_indices.size ==1:
+            return test_indices
         scores = self.utility.get_scores(self.model,data,test_indices,budget,points)
 
         max_index = np.argmax(scores)

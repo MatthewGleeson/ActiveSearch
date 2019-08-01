@@ -3,6 +3,7 @@
 from active_search.policies import *
 import matplotlib.pyplot as plt
 from active_search.models import *
+from math import ceil
 
 
 class ActiveLearning(object):
@@ -11,14 +12,23 @@ class ActiveLearning(object):
         self.visual = visual
         self.random = random
         self.problem = problem()
-
+        self.utilityvalue = utility
         if utility== 1:
             self.utility = OneStep()
+            self.selector = UnlabelSelector()
         elif utility == 2:
             self.utility = TwoStep()
             self.random = False
             random = False
             print("two-step utility selected. Overriding random in favor of argmax")
+            self.selector = TwoStepPruningSelector()
+        elif utility ==3:
+            self.utility = ENS()
+            self.random = False
+            random = False
+            print("ENS utility selected. Overriding random in favor of argmax")
+            self.selector = ENSPruningSelector()
+            self.unlabel_selector = UnlabelSelector()
         #else make it ENS!!!
 
         if random:
@@ -26,11 +36,9 @@ class ActiveLearning(object):
         else:
             self.model = KnnModel(self.problem)
             print("KNN MODEL SELECTED!!!")
-
         
         self.iteration = 0
         self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
-        self.selector = TwoStepPruningSelector()
 
     def run(self, budget):
 
@@ -42,6 +50,9 @@ class ActiveLearning(object):
 
         #TODO: make this call more general, not all problems will
         #      have labels_deterministic
+
+        starting_budget = budget
+        np.random.seed(3)
         positive_indices = [i for i, x in 
             enumerate(self.problem.labels_deterministic) if x > 0]
 
@@ -50,6 +61,10 @@ class ActiveLearning(object):
         is24 = np.where(positive_indices==24)
         print("24th index:",is24)
         firstObsIndex = positive_indices[0]
+        
+        
+        #25;178;221;240
+
         #TODO: test using random selections of points
         #firstObsIndex = [25,178,221,240]
 
@@ -65,23 +80,42 @@ class ActiveLearning(object):
 
         if self.visual:
             self.show_problem()
+        """
+        a = np.array([34, 92, 104])
+        for j in a:
+            k = self.problem.oracle_function(j)
+            currentData.new_observation(j, k)
+            if self.visual:
+                self.add_points(j, k)
+        """
+        if self.visual:
+            #self.show_problem()
             self.add_points(firstObsIndex, firstPointValue)
-
+        test_points = np.empty((0,0))
         i = 0
         totalrewards = firstPointValue
-        while budget >= 0:
+        while budget > 0:
             self.iteration = self.iteration + 1
             # model.update
             i = i + 1
             print("step ", i)
             print("budget",budget)
-            test_indices = self.selector.filter(self.model,self.policy, currentData, 
-                                             self.problem.points,self.problem)
+
+
+            if self.utilityvalue==3 and budget>starting_budget/2:
+                test_indices = self.unlabel_selector.filter(currentData, self.problem.points)
+                num_ind = test_indices.size
+                test_indices_index = ceil(np.random.random()*num_ind)-1
+                test_indices = test_indices[test_indices_index]
+            else:
+                test_indices = self.selector.filter(self.model,self.policy, currentData, 
+                                             self.problem.points,self.problem,budget)
            
             
             x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points)
             
-            
+            test_points = np.append(test_points,x_index)
+            np.savetxt('test_points.txt', test_points, fmt='%i', delimiter=' ')
             print("selected index: ",x_index)
             y = self.problem.oracle_function(x_index)
             currentData.new_observation(x_index, y)
@@ -92,6 +126,8 @@ class ActiveLearning(object):
             print("total rewards:", totalrewards)
             if self.visual:
                 self.add_points(x_index, y)
+        
+        
         return totalrewards
 
     def show_problem(self):
