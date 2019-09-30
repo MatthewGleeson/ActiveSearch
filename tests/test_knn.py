@@ -7,6 +7,37 @@ from scipy.sparse import find
 
 
 class TestWeightMatrix:
+  
+  #@pytest.mark.skip(reason="testing nn first")
+  def test_weight_matrix_k_4_jitter(self):
+    problem = ToyProblem(jitter = True)
+
+    model = KnnModel(problem, k=4)
+    nn_weights = scipy.io.loadmat("tests/matlab_variables/weights_4nn_jitter.mat")
+    nn_weights = nn_weights['weights']
+
+    #check nnz equal
+    assert model.weight_matrix.nnz == nn_weights.nnz
+  
+
+
+    nn_weights = nn_weights.toarray()
+    model.weight_matrix = model.weight_matrix.toarray()
+
+    #differences = np.abs(nn_weights-model.weight_matrix)
+    differences = nn_weights-model.weight_matrix
+    
+
+    print(differences[1165,1266])
+    print(differences[1266,1165])
+    print(model.weight_matrix[1165,1266])
+
+
+    print(np.amax(differences))
+    print(np.argmax(differences[1165]))
+
+
+    assert np.allclose(nn_weights,model.weight_matrix, atol=1e-02)
 
 
   def test_weight_matrix_k_4(self):
@@ -157,6 +188,17 @@ class TestWeightMatrix:
 
 
 class TestNearestNeighbors:
+  #@pytest.mark.skip(reason="testing weight first")
+  def test_nearest_neighbors_k_4_jitter(self):
+    problem = ToyProblem(jitter=True)
+
+    model = KnnModel(problem,k=4) 
+    nn_values = scipy.io.loadmat("tests/matlab_variables/nearest_neighbors_4nn_jitter.mat")
+    nn_values = nn_values['nearest_neighbors']
+    nn_values = nn_values.T -1
+    
+    assert np.all(np.sort(nn_values,axis=1) == np.sort(model.ind,axis=1))
+
 
   def test_nearest_neighbors_k_4(self):
     problem = ToyProblem()

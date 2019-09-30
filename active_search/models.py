@@ -52,8 +52,8 @@ class ToyProblem(Problem):
         Toy problem from genData
     """
 
-    def __init__(self):
-        self.labels_random, self.labels_deterministic, self.points = genData()
+    def __init__(self,jitter = False):
+        self.labels_random, self.labels_deterministic, self.points = genData(jitter)
 
     def oracle_function(self, index):
         return self.labels_deterministic[index]
@@ -336,7 +336,7 @@ class KnnModel(Model):
 
         self.tree = KDTree(problem.points)
         self.dist, self.ind = self.tree.query(problem.points, k=k + 1)
-
+        
         self.dist = self.dist[:, 1:]
         self.ind = self.ind[:, 1:]
         self.similarities = np.reciprocal(self.dist)
@@ -391,19 +391,27 @@ class KnnModel(Model):
         train_indices = np.asarray(data.train_indices)
 
 
-        mask = observed_labels == 1
+        mask = (observed_labels == 1)
         sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
+
+        
         # sparseMatrixColumnIndicesPos=sparseMatrixColumnIndicesPos.astype(int)
 
+        #TODO: ERROR LIES IN THE LINE BELOW!!!!!
+
+        #ideas: could it be because I'm using pre-loaded weight matrix elsewhere in python code?
+    
         positiveSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesPos].sum(axis=1)
 
+
+        np.savetxt('positive_sum.txt', positiveSum, fmt='%10.5f', delimiter=' ')
         numerator = gamma + positiveSum
 
         sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
 
         negativeSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesNeg].sum(axis=1)
         denominator = 1 + positiveSum + negativeSum
-
+        
         predictions = numerator / denominator
 
         #predictions = np.delete(predictions,train_indices,axis=0)

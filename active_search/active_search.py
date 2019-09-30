@@ -4,14 +4,14 @@ from active_search.policies import *
 import matplotlib.pyplot as plt
 from active_search.models import *
 from math import ceil
-
+#import sys
 
 class ActiveLearning(object):
 
-    def __init__(self, random=True, visual=False, problem = ToyProblem,utility = 2):
+    def __init__(self, random=True, jitter = False, visual=False, problem = ToyProblem,utility = 2):
         self.visual = visual
         self.random = random
-        self.problem = problem()
+        self.problem = problem(jitter)
         self.utilityvalue = utility
         if utility== 1:
             self.utility = OneStep()
@@ -29,12 +29,11 @@ class ActiveLearning(object):
             print("ENS utility selected. Overriding random in favor of argmax")
             self.selector = ENSPruningSelector()
             self.unlabel_selector = UnlabelSelector()
-        #else make it ENS!!!
 
         if random:
             self.model = RandomModel()
         else:
-            self.model = KnnModel(self.problem)
+            self.model = KnnModel(self.problem, k = 4)
             print("KNN MODEL SELECTED!!!")
         
         self.iteration = 0
@@ -101,7 +100,7 @@ class ActiveLearning(object):
             print("step ", i)
             print("budget",budget)
 
-
+            """
             if self.utilityvalue==3 and budget>starting_budget/2:
                 test_indices = self.unlabel_selector.filter(currentData, self.problem.points)
                 num_ind = test_indices.size
@@ -111,11 +110,15 @@ class ActiveLearning(object):
                 test_indices = self.selector.filter(self.model,self.policy, currentData, 
                                              self.problem.points,self.problem,budget)
            
+            """
+            test_indices = self.selector.filter(self.model,self.policy, currentData, 
+                                             self.problem.points,self.problem,budget)
             
+
             x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points)
             
             test_points = np.append(test_points,x_index)
-            np.savetxt('test_points.txt', test_points, fmt='%i', delimiter=' ')
+            #np.savetxt('test_points.txt', test_points, fmt='%i', delimiter=' ')
             print("selected index: ",x_index)
             y = self.problem.oracle_function(x_index)
             currentData.new_observation(x_index, y)
