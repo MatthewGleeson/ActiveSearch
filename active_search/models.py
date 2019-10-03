@@ -94,10 +94,9 @@ class Selector(object):
 
 
 class UnlabelSelector(Selector):
-    def filter(self, data, points):
+    def filter(self, data, points, *args):
         test_indices = range(np.size(points, 0))
         test_indices = np.delete(test_indices, data.train_indices)
-
         return test_indices
 
 class TwoStepPruningSelector(Selector):
@@ -107,15 +106,18 @@ class TwoStepPruningSelector(Selector):
         pass
 
     
-    def filter(self, model, policy, data, points, problem, budget):
+    def filter(self, data, points, model, policy, problem, budget):
         
         def expected_loss_lookahead(model,data, this_test_ind, test_indices, 
                                     probabilities, points):
 
             true_index = test_indices[this_test_ind]
             loss_probabilities = probabilities[this_test_ind]
-            probabilities_including_negative = np.append(loss_probabilities,
-                                                    1-loss_probabilities,axis=1)
+            print(loss_probabilities.shape)
+            probabilities_including_negative = np.concatenate([loss_probabilities,
+                                                    1-loss_probabilities])
+            #probabilities_including_negative = np.append(loss_probabilities,
+            #                                        1-loss_probabilities,axis=1)
 
             fake_train_ind = np.append(data.train_indices,true_index)
             fake_test_ind = np.delete(test_indices,this_test_ind)
@@ -150,10 +152,10 @@ class TwoStepPruningSelector(Selector):
             max_weight = np.amax(max_weights[test_indices.astype(int)])
 
             successes = model.weight_matrix[test_indices,:][:,
-                                         sparseMatrixColumnIndicesPos].sum(axis=1)
+                                         sparseMatrixColumnIndicesPos].toarray().sum(axis=1)
             
             failures = model.weight_matrix[test_indices,:][:,
-                                         sparseMatrixColumnIndicesNeg].sum(axis=1)
+                                         sparseMatrixColumnIndicesNeg].toarray().sum(axis=1)
 
             max_alpha = 0.1 + successes + num_positives * max_weight
 
@@ -208,7 +210,7 @@ class ENSPruningSelector(Selector):
         pass
 
     
-    def filter(self, model, policy, data, points, problem,budget):
+    def filter(self, data, points, model, policy, problem, budget):
         
         def expected_loss_lookahead(model,data, this_test_ind, test_indices, 
                                     probabilities, points):
@@ -251,10 +253,10 @@ class ENSPruningSelector(Selector):
             max_weight = np.amax(max_weights[test_indices.astype(int)])
 
             successes = model.weight_matrix[test_indices,:][:,
-                                         sparseMatrixColumnIndicesPos].sum(axis=1)
+                                         sparseMatrixColumnIndicesPos].toarray().sum(axis=1)
             
             failures = model.weight_matrix[test_indices,:][:,
-                                         sparseMatrixColumnIndicesNeg].sum(axis=1)
+                                         sparseMatrixColumnIndicesNeg].toarray().sum(axis=1)
 
             max_alpha = 0.1 + successes + num_positives * max_weight
 
@@ -401,15 +403,15 @@ class KnnModel(Model):
 
         #ideas: could it be because I'm using pre-loaded weight matrix elsewhere in python code?
     
-        positiveSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesPos].sum(axis=1)
+        positiveSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesPos].toarray().sum(axis=1)
 
 
-        np.savetxt('positive_sum.txt', positiveSum, fmt='%10.5f', delimiter=' ')
+        #np.savetxt('positive_sum.txt', positiveSum, fmt='%10.5f', delimiter=' ')
         numerator = gamma + positiveSum
 
         sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
 
-        negativeSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesNeg].sum(axis=1)
+        negativeSum = self.weight_matrix[test_indices,:][:,sparseMatrixColumnIndicesNeg].toarray().sum(axis=1)
         denominator = 1 + positiveSum + negativeSum
         
         predictions = numerator / denominator
@@ -418,7 +420,7 @@ class KnnModel(Model):
         
         #begin debug code
 
-        
+        predictions = predictions.reshape((-1, 1))
         #print(np.where(predictions == diffs ,predictions))
 
         # row-wise sum up the elements in self.weight_matrix whose indices are in (self.problem.train_ind minus

@@ -27,7 +27,8 @@ class ActiveLearning(object):
             self.random = False
             random = False
             print("ENS utility selected. Overriding random in favor of argmax")
-            self.selector = ENSPruningSelector()
+            self.selector = UnlabelSelector()
+            #self.selector = ENSPruningSelector()
             self.unlabel_selector = UnlabelSelector()
 
         if random:
@@ -76,6 +77,7 @@ class ActiveLearning(object):
         firstPointValue = self.problem.oracle_function(firstObsIndex)
         #print("first point value:",self.oracle_function(firstObsIndex))
         currentData.new_observation(firstObsIndex, firstPointValue)
+        budget = budget-1
 
         if self.visual:
             self.show_problem()
@@ -111,12 +113,14 @@ class ActiveLearning(object):
                                              self.problem.points,self.problem,budget)
            
             """
-            test_indices = self.selector.filter(self.model,self.policy, currentData, 
-                                             self.problem.points,self.problem,budget)
+            test_indices = self.selector.filter(currentData, self.problem.points,
+                                    self.model,self.policy, self.problem, budget)
             
-
+            start = time.time()
+ 
             x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points)
-            
+            end = time.time()
+            print("time for policy choose next: ", end - start)
             test_points = np.append(test_points,x_index)
             #np.savetxt('test_points.txt', test_points, fmt='%i', delimiter=' ')
             print("selected index: ",x_index)

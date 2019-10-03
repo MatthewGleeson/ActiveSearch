@@ -27,7 +27,10 @@ class TestOneStep:
 
 
 class TestTwoStep:
-
+  #@pytest.mark.skip(reason="no way of currently testing this")
+  #@pytest.mark.filterwarnings("ignore:PendingDeprecationWarning")
+  #@pytest.mark.filterwarnings("ignore:SparseEfficiencyWarning")
+   
   def test_two_step_48nn(self):
 
     budget = 100
@@ -56,8 +59,7 @@ class TestTwoStep:
     currentData.new_observation(firstObsIndex, firstPointValue)
     #test_indices = np.array([444, 588, 1692, 1909, 2203, 2208, 2268])
 
-    test_indices = selector.filter(model,policy, currentData, 
-                                             problem.points,problem,budget)
+    test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
 
     scores = utility.get_scores(model, currentData, test_indices,budget,problem.points)
 
@@ -71,25 +73,26 @@ class TestTwoStep:
 
 
 class TestENS:
-
+  @pytest.mark.skip(reason="already passing")
   def test_ENS_4nn(self):
 
     budget = 99
-    problem = ToyProblem()
+    problem = ToyProblem(jitter=True)
     model = KnnModel(problem, k=4)
     currentData = Data()
 
-    weight_matrix_matlab = scipy.io.loadmat("tests/matlab_variables/weights_4nn.mat")
+    weight_matrix_matlab = scipy.io.loadmat("tests/matlab_variables/weights_4nn_jitter.mat")
     weight_matrix_matlab = weight_matrix_matlab['weights']
-    nearest_neighbors_matlab = scipy.io.loadmat("tests/matlab_variables/nearest_neighbors_4nn.mat")
+    nearest_neighbors_matlab = scipy.io.loadmat("tests/matlab_variables/nearest_neighbors_4nn_jitter.mat")
     nearest_neighbors_matlab = nearest_neighbors_matlab['nearest_neighbors']-1
 
     model.weight_matrix = weight_matrix_matlab
     model.ind = nearest_neighbors_matlab.T
-    #expected_scores = scipy.io.loadmat("tests/matlab_variables/ens_48_utilities.mat")
-
+    expected_scores = scipy.io.loadmat("tests/matlab_variables/ens_utilities_4nn.mat")
+    expected_scores = expected_scores['utilities']
+    
     utility = ENS()
-    selector = ENSPruningSelector()
+    selector = UnlabelSelector()
 
     policy = ArgMaxPolicy(problem, model,utility)
     np.random.seed(3)
@@ -98,33 +101,90 @@ class TestENS:
     firstObsIndex = positive_indices[0]
 
     currentData = Data()
-    print("K-nearest neighbors indices of first point:",
-          model.ind[firstObsIndex] + 1)
-    print("selected point is index:", firstObsIndex)
+    
     firstPointValue = problem.oracle_function(firstObsIndex)
     #print("first point value:",self.oracle_function(firstObsIndex))
     currentData.new_observation(firstObsIndex, firstPointValue)
     #test_indices = np.array([444, 588, 1692, 1909, 2203, 2208, 2268])
 
-    test_indices = selector.filter(model,policy, currentData, 
-                                             problem.points,problem,budget)
+  
+    test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
 
-    expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_48_test_indices.mat")
+
+    
+
+    expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_test_indices_4nn.mat")
     expected_test_indices = expected_test_indices['test_ind']-1
     
+    expected_test_indices = np.sort(expected_test_indices,axis = 0)
+
     #compare test_indices
     for index, expected_index in zip(test_indices, expected_test_indices):
       assert index == expected_index
-  
-    #next, compare expected utilities
 
     scores = utility.get_scores(model, currentData, test_indices,budget,problem.points)
-
+    print(problem.points)
     for score, expected in zip(scores, expected_scores):
       assert score == pytest.approx(expected)
 
 
+    def test_ENS_4nn_every_iteration(self):
 
+    budget = 99
+    problem = ToyProblem(jitter=True)
+    model = KnnModel(problem, k=4)
+    currentData = Data()
+
+    weight_matrix_matlab = scipy.io.loadmat("tests/matlab_variables/weights_4nn_jitter.mat")
+    weight_matrix_matlab = weight_matrix_matlab['weights']
+    nearest_neighbors_matlab = scipy.io.loadmat("tests/matlab_variables/nearest_neighbors_4nn_jitter.mat")
+    nearest_neighbors_matlab = nedarest_neighbors_matlab['nearest_neighbors']-1
+
+    model.weight_matrix = weight_matrix_matlab
+    model.ind = nearest_neighbors_matlab.T
+    expected_scores = scipy.io.loadmat("tests/matlab_variables/ens_utilities_every_iter_4nn.mat")
+    expected_scores = expected_scores['utilities']
+
+    utility = ENS()
+    selector = UnlabelSelector()
+
+    policy = ArgMaxPolicy(problem, model,utility)
+    np.random.seed(3)
+    positive_indices = [i for i, x in enumerate(problem.labels_deterministic) if x > 0]
+
+    firstObsIndex = positive_indices[0]
+
+    currentData = Data()
+    
+    firstPointValue = problem.oracle_function(firstObsIndex)
+    #print("first point value:",self.oracle_function(firstObsIndex))
+    currentData.new_observation(firstObsIndex, firstPointValue)
+    #test_indices = np.array([444, 588, 1692, 1909, 2203, 2208, 2268])
+
+
+
+    
+    test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
+
+    expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_test_indices_4nn.mat")
+    expected_test_indices = expected_test_indices['test_ind']-1
+    
+    expected_test_indices = np.sort(expected_test_indices,axis = 0)
+
+
+
+
+
+
+
+    #compare test_indices
+    for index, expected_index in zip(test_indices, expected_test_indices):
+      assert index == expected_index
+
+    scores = utility.get_scores(model, currentData, test_indices,budget,problem.points)
+    print(problem.points)
+    for score, expected in zip(scores, expected_scores):
+      assert score == pytest.approx(expected)
 
 
 
