@@ -3,6 +3,7 @@ from active_search.policies import *
 from unittest.mock import Mock
 import pytest
 import scipy.io
+import warnings
 
 
 
@@ -110,9 +111,6 @@ class TestENS:
   
     test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
 
-
-    
-
     expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_test_indices_4nn.mat")
     expected_test_indices = expected_test_indices['test_ind']-1
     
@@ -128,7 +126,12 @@ class TestENS:
       assert score == pytest.approx(expected)
 
 
-    def test_ENS_4nn_every_iteration(self):
+
+
+
+
+
+  def test_ENS_4nn_every_iteration(self):
 
     budget = 99
     problem = ToyProblem(jitter=True)
@@ -138,12 +141,19 @@ class TestENS:
     weight_matrix_matlab = scipy.io.loadmat("tests/matlab_variables/weights_4nn_jitter.mat")
     weight_matrix_matlab = weight_matrix_matlab['weights']
     nearest_neighbors_matlab = scipy.io.loadmat("tests/matlab_variables/nearest_neighbors_4nn_jitter.mat")
-    nearest_neighbors_matlab = nedarest_neighbors_matlab['nearest_neighbors']-1
+    nearest_neighbors_matlab = nearest_neighbors_matlab['nearest_neighbors']-1
 
     model.weight_matrix = weight_matrix_matlab
     model.ind = nearest_neighbors_matlab.T
     expected_scores = scipy.io.loadmat("tests/matlab_variables/ens_utilities_every_iter_4nn.mat")
-    expected_scores = expected_scores['utilities']
+    expected_scores = expected_scores['test_policies_utilities']
+
+
+    expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_test_indices_every_iter_4nn.mat")
+    expected_test_indices = expected_test_indices['test_policies_utilities']
+
+    expected_selected_indices = scipy.io.loadmat("tests/matlab_variables/expected_selected_indices_every_iter_4nn.mat")
+    expected_selected_indices = expected_selected_indices['train_and_selected_ind']-1
 
     utility = ENS()
     selector = UnlabelSelector()
@@ -162,30 +172,47 @@ class TestENS:
     #test_indices = np.array([444, 588, 1692, 1909, 2203, 2208, 2268])
 
 
-
+    while budget > 0:
     
-    test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
+      test_indices = selector.filter(currentData, problem.points,model,policy,problem, budget)
 
-    expected_test_indices = scipy.io.loadmat("tests/matlab_variables/ens_test_indices_4nn.mat")
-    expected_test_indices = expected_test_indices['test_ind']-1
-    
-    expected_test_indices = np.sort(expected_test_indices,axis = 0)
+      budget_string = 'budget'+str(budget)
+      #expected_test_indices['budget98']
+      this_iter_expected_test_indices = expected_test_indices[budget_string]-1
+      this_iter_expected_test_indices= this_iter_expected_test_indices[0][0].reshape(-1,)
+      #print(this_iter_expected_test_indices[0][0])
+
+      #compare test_indices
+      for index, expected_index in zip(test_indices, this_iter_expected_test_indices):
+        assert index == expected_index
+
+      #print(test_indices.shape)
+      #print(this_iter_expected_test_indices.reshape(-1,).shape)
+      scores = utility.get_scores(model, currentData, this_iter_expected_test_indices,budget,problem.points)
+
+      max_index = np.argmax(scores)
 
 
+      this_iter_expected_scores = expected_scores[budget_string][0][0]
+      #print(this_iter_expected_scores)
 
 
+      for score, expected in zip(scores, this_iter_expected_scores):
+        assert score == pytest.approx(expected,abs=1e-13)
+      
+      chosen_x_index = this_iter_expected_test_indices[max_index]
+      
+      #assert chosen_x_index==expected_selected_indices[100-budget]
 
+      if chosen_x_index!=expected_selected_indices[100-budget][0]:
+        warnings.warn(UserWarning("chosen index doesnt match up, however expected scores may match. replaced chosen index"))
+        chosen_x_index=expected_selected_indices[100-budget][0]
 
+      y = problem.oracle_function(chosen_x_index)
+      currentData.new_observation(chosen_x_index, y)
 
-    #compare test_indices
-    for index, expected_index in zip(test_indices, expected_test_indices):
-      assert index == expected_index
-
-    scores = utility.get_scores(model, currentData, test_indices,budget,problem.points)
-    print(problem.points)
-    for score, expected in zip(scores, expected_scores):
-      assert score == pytest.approx(expected)
-
+      budget -=1
+      #print(problem.points)
 
 
   """

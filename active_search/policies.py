@@ -2,7 +2,7 @@
 #from models import *
 import numpy as np
 import copy
-from active_search.models import UnlabelSelector
+from active_search.models import UnlabelSelector,KnnModel
 import sys
 from scipy.sparse import find
 #import bottleneck as bn
@@ -336,22 +336,41 @@ class ArgMaxPolicy(Policy):
         if test_indices.size ==1:
             return test_indices
         scores = self.utility.get_scores(self.model,data,test_indices,budget,points)
+        max_index = np.argmax(scores)
 
-        """
-        #scores = scores.flatten()
-        test_ind_size = test_indices.size
-        test_indices_reshaped = test_indices.reshape((test_ind_size,1))
-        print("test_indices shape:", test_indices_reshaped.shape)
-        print("scores shape:", scores.shape)
-        concatenated = np.concatenate((test_indices_reshaped, scores), axis=1)
-        np.savetxt('twoStepUtilities.txt', concatenated, fmt='%i', delimiter=' ')
-        sys.exit()
-        """
+        chosen_x_index = test_indices[max_index]
+        
+        #print("index value:",chosen_x_index)
+        #print("largest score value:",scores[chosen_x_index])
+        #print("next index's score value:",scores[chosen_x_index+1])
+        #print("chooses x index:",chosen_x_index)
+        #print("with y_train value:",self.Utility.model.problem.y_train[chosen_x_index])
 
+        #chosen_x = self.model.problem.x_pool[chosen_x_index]
+        return chosen_x_index
+
+
+class ENSPolicy(Policy):
+    def __init__(self, problem, model=None, utility=None):
+        if not model:
+            model = KnnModel(problem)
+        if not utility:
+            utility = ENS()
+        self.model = model
+        self.utility = utility
+
+    def choose_next(self, data, test_indices, budget,points):
+        
+        if budget==1:
+            probs = self.model.predict(data, test_indices)
+            return test_indices[np.argmax(probs)]
         
 
 
 
+        if test_indices.size ==1:
+            return test_indices
+        scores = self.utility.get_scores(self.model,data,test_indices,budget,points)
         max_index = np.argmax(scores)
 
         chosen_x_index = test_indices[max_index]

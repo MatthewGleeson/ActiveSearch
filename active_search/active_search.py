@@ -121,7 +121,7 @@ class ActiveLearning(object):
             x_index = self.policy.choose_next(currentData,test_indices, budget,self.problem.points)
             end = time.time()
             print("time for policy choose next: ", end - start)
-            test_points = np.append(test_points,x_index)
+            #test_points = np.append(test_points,x_index)
             #np.savetxt('test_points.txt', test_points, fmt='%i', delimiter=' ')
             print("selected index: ",x_index)
             y = self.problem.oracle_function(x_index)
