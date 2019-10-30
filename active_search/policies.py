@@ -109,7 +109,7 @@ class OneStep(Utility):
         pass
 
     def get_scores(self, model, data, test_indices,budget,points):
-        expected_utilities = model.predict(data, test_indices)
+        expected_utilities = model.predict(data, test_indices) + sum(data.observed_labels)
         return expected_utilities
         # return probability estimation
 
@@ -276,6 +276,36 @@ class ENS(Utility):
             this_test_probs = unlabeled_probs[c]
             this_test_probs = np.append(this_test_probs,1-this_test_probs,axis=1)
 
+
+            #Begin unrolling For loop
+            #J = 0
+
+            fake_data.observed_labels = np.append(data.observed_labels,0)
+                
+            fake_data.train_indices = fake_train_ind
+
+            fake_predictions = model.predict(fake_data,fake_test_ind)
+            
+            q = np.sort(fake_predictions, axis=0)
+            q = q[::-1]
+
+            pstar[1][0] = merge_sort(p,q,top_ind,budget)
+
+            #J = 1
+
+            fake_data.observed_labels = np.append(data.observed_labels,1)
+            fake_data.train_indices = fake_train_ind
+            fake_predictions = model.predict(fake_data,fake_test_ind)
+            q = np.sort(fake_predictions, axis=0)
+            q = q[::-1]
+
+            pstar[0][0] = merge_sort(p,q,top_ind,budget)
+
+
+
+
+            #End unrolling for loop
+
             for j in range(2):
                 
                 fake_data.observed_labels = np.append(data.observed_labels,j)
@@ -364,9 +394,6 @@ class ENSPolicy(Policy):
         if budget==1:
             probs = self.model.predict(data, test_indices)
             return test_indices[np.argmax(probs)]
-        
-
-
 
         if test_indices.size ==1:
             return test_indices
