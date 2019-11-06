@@ -9,7 +9,7 @@ Efficient Nonmyopic Active Search. ICML 2017. http://proceedings.mlr.press/v70/j
 Efficient Nonmyopic Batch Active Search. NeurIPS 2018. https://papers.nips.cc/paper/7387-efficient-nonmyopic-batch-active-search
 
 
-This code is partially based on Matlab code written by Shali Jiang, located at https://github.com/shalijiang/efficient_nonmyopic_active_search
+This code is partially based on Matlab code written by Roman Garnett and Shali Jiang, located at https://github.com/shalijiang/efficient_nonmyopic_active_search
 
 # Video
 A 3-minute video introducing efficient nonmyopic batch active search: https://www.youtube.com/watch?v=9y1HNY95LzY&feature=youtu.be
