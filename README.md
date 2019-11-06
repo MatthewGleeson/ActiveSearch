@@ -1,4 +1,4 @@
-# Efficient Nonmyopic (batch) Active Search
+# Efficient Nonmyopic Active Search
 
 This repo contains implentations of the active search policies in the following two papers:
 
