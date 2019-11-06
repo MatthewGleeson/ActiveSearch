@@ -118,29 +118,61 @@ class TwoStep(Utility):
 
     def __init__(self):
         self.selector = UnlabelSelector()
+
+        self.ensUtility = ENS()
         pass
 
+    
     def get_scores(self, model,data,test_indices,budget,points):
+        
 
-        #TODO: do I need to do something if budget <=1?
+        #return self.ensUtility.get_scores( model,data,test_indices,2,points)
+
         
         #compute p
         num_test = test_indices.size
         
         expected_utilities = np.zeros((num_test,1))
         
-        #TODO: remove below line
-        #probabilitiesStorage = np.zeros((num_test,2))
 
         unlabeled_ind = self.selector.filter(data, points)
 
-        probabilities = model.predict(data,test_indices)
+        probabilities = model.predict(data,unlabeled_ind)
+
+        #Begin pasted code
+        testProbs = model.predict(data,test_indices)
+
+        probs = np.zeros((points.size,1))
+
+        probs[data.train_indices] = np.array(data.observed_labels, ndmin=2).T
+        
+        probs[test_indices] = testProbs
+
+        all_probs = np.tile(probs, (16, 1))
+        unlabeled_probs = all_probs[unlabeled_ind]
+
+        reverse_ind = np.ones((points.size,1))*-1
+        reverse_ind[unlabeled_ind]= np.arange(0,unlabeled_ind.size).reshape((unlabeled_ind.size,1))
+
+        reverse_ind = reverse_ind.astype(int)
+
+        #End pasted code
+
+        
+
+        #TODO: set probability values to zero
+        #p(reverse_ind(this_test_ind)) = 0;
+        #p(reverse_ind(fake_test_ind)) = 0;
+
+        
+
+        probabilities[::-1].sort()
+
+        p_max = np.amax(probabilities)
 
         probabilities_including_negative = np.append(probabilities,1-probabilities,axis=1)
 
         unlabeledWeights = model.weight_matrix.tolil(copy=True)
-
-
 
         unlabeledWeights[data.train_indices,:]=0
         
@@ -155,6 +187,20 @@ class TwoStep(Utility):
             #fake_test_ind = np.delete(unlabeled_ind,i)
 
             fake_test_ind = find(unlabeledWeights[:,this_test_ind])[0]
+
+            #begin pasted code
+            p = probabilities.copy()
+
+            a = np.take(reverse_ind,this_test_ind)
+            b = np.take(reverse_ind,fake_test_ind)
+            
+            a = a[a>=0].astype(int)
+            b = b[b>=0].astype(int)
+            
+            p[a]=0
+            p[b]=0
+
+            #END pasted code
             #print("fake_test_indices shape:",fake_test_ind.shape)
             #to_print = np.sort(fake_test_ind)
             #fake_test_ind = fake_test_ind.sort()
@@ -169,14 +215,25 @@ class TwoStep(Utility):
 
                 fake_predictions = model.predict(fake_data,fake_test_ind)
 
+                #if len(data.train_indices)==2:
+                #import pdb; pdb.set_trace()
                 #np.savetxt("probabilities"+str(i)+str(j), fake_predictions)
-                pstar[1-j][0] = np.amax(fake_predictions)
-                
-            expected_utilities[i]= np.matmul(probabilities_including_negative[i],pstar)
-            #print(pstar)
-            
 
-        two_step_utilities = np.size(data.train_indices) + probabilities + expected_utilities
+                #p_max = np.amax(probabilities[1:fake_predictions.size+1])
+                #p_max = np.amax(probabilities[0:fake_predictions.size+1])
+                #if budget ==98:
+                #    import pdb; pdb.set_trace()
+                p_max = np.amax(p)
+
+                pstar[1-j][0] = max(p_max, np.amax(fake_predictions))+j+sum(data.observed_labels)
+
+                #pstar[1-j][0] = max(p_max, np.amax(fake_predictions))
+                
+            expected_utilities[i]= np.matmul(probabilities_including_negative[reverse_ind[test_indices[i]]],pstar)
+            #print(pstar)
+        
+
+        #two_step_utilities = np.size(data.train_indices) + expected_utilities
         
         #print("number of observed points:", np.size(data.train_indices))
         #print("probabilities: ", probabilities)
@@ -200,9 +257,8 @@ class TwoStep(Utility):
         np.savetxt('twosteputilities.txt', to_save, delimiter=' ')
         sys.exit()
         """
-
         
-        return two_step_utilities
+        return expected_utilities
         
 class ENS(Utility):
 

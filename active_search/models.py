@@ -175,7 +175,11 @@ class TwoStepPruningSelector(Selector):
 
         test_indices = unlabeled_ind
         
+        #probabilities = model.predict(data,unlabeled_ind)
         probabilities = model.predict(data,unlabeled_ind)
+        if budget ==1:
+            test_indices = test_indices[np.argmax(probabilities)]
+            return test_indices
 
         highest_prob_test_index = np.argmax(probabilities)
         highest_prob_test_ind = test_indices[highest_prob_test_index]
@@ -193,6 +197,12 @@ class TwoStepPruningSelector(Selector):
         print("optimal_lower_bound:", optimal_lower_bound)
 
         true_bound = min(optimal_lower_bound, probabilities[highest_prob_test_index])
+
+
+        #TODO: REMOVE THIS DEBUG CODE
+
+        #if budget ==2:
+        #    import pdb; pdb.set_trace()
         test_ind_mask = probabilities>=true_bound
         
         test_ind_mask = np.squeeze(np.asarray(test_ind_mask))
