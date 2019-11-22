@@ -4,6 +4,8 @@ from active_search.policies import *
 import matplotlib.pyplot as plt
 from active_search.models import *
 from math import ceil
+import os
+import errno
 #import sys
 
 class ActiveLearning(object):
@@ -141,7 +143,17 @@ class ActiveLearning(object):
         plt.gca().set_aspect('equal', adjustable='box')
         plt.scatter(self.problem.points[:, 0], self.problem.points[:, 1],
                     c=self.problem.labels_deterministic, s=20)
-        
+        path = "imgDirectory/"
+
+        try:
+            os.mkdir(path)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                print ("Directory %s already exists" % path)
+            else:
+                print ("Creation of the directory %s failed" % path)            
+        else:
+            print ("Successfully created the directory %s " % path)
         plt.pause(0.001)
 
     def add_points(self, x_index, y):

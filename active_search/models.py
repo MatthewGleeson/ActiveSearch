@@ -227,8 +227,10 @@ class ENSPruningSelector(Selector):
 
             true_index = test_indices[this_test_ind]
             loss_probabilities = probabilities[this_test_ind]
-            probabilities_including_negative = np.append(loss_probabilities,
-                                                    1-loss_probabilities,axis=1)
+            #import pdb; pdb.set_trace()
+            probabilities_including_negative = np.zeros((1,2))
+            probabilities_including_negative[0][0]=loss_probabilities
+            probabilities_including_negative[0][1]=1-loss_probabilities
 
             fake_train_ind = np.append(data.train_indices,true_index)
             fake_test_ind = np.delete(test_indices,this_test_ind)
@@ -302,14 +304,14 @@ class ENSPruningSelector(Selector):
         top_prob_sum = np.sum(probabilities.argsort()[-budget:][::-1])
 
         
-
         optimal_lower_bound = np.divide((p_prime - top_prob_sum),(1+ budget*p_star_one-top_prob_sum))
         
         print("optimal_lower_bound:", optimal_lower_bound)
 
-
+        import pdb; pdb.set_trace()
 
         true_bound = min(optimal_lower_bound, probabilities[highest_prob_test_index])
+        print("true_bound: ", true_bound)
         test_ind_mask = probabilities>=true_bound
         
         test_ind_mask = np.squeeze(np.asarray(test_ind_mask))
@@ -361,7 +363,7 @@ class KnnModel(Model):
         self.weight_matrix = csr_matrix(
             (values, (row, column)), shape=(n, n)
         )
-
+        self.k = np.amax(np.sum(self.weight_matrix>0,axis=0))
         #TODO: remove below line after done testing
         #savemat('weights', {'weights':self.weight_matrix})
         #print("nearest neighbors:", self.ind[24])

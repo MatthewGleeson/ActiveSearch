@@ -267,8 +267,54 @@ class ENS(Utility):
         
         pass
 
+
+    def knnbound(self, model, data, points, test_indices, budget):
+            
+        observed_labels = np.asarray(data.observed_labels)
+        train_indices = np.asarray(data.train_indices)
+        mask = observed_labels == 1
+        sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
+        sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
+        end = model.weight_matrix.shape[0]
+        
+        
+        
+        knn_weights = model.similarities
+        in_train = np.isin(model.ind, data.train_indices)
+        knn_weights[in_train] =  0
+        max_weight = np.max(knn_weights[test_indices.astype(int),0:min(end,len(data.train_indices)+1)] ,axis=1)
+
+        successes = model.weight_matrix[test_indices,:][:,
+                                        sparseMatrixColumnIndicesPos].toarray().sum(axis=1)
+        
+        failures = model.weight_matrix[test_indices,:][:,
+                                        sparseMatrixColumnIndicesNeg].toarray().sum(axis=1)
+
+        max_alpha = 0.1 + successes + max_weight
+
+        min_beta = .9 + failures
+
+        #begin pasted code
+
+        bound = np.divide(max_alpha,(max_alpha+min_beta))
+
+        if budget<=1:
+            bound = np.amax(bound)
+        else:
+            bound[::-1].sort()
+            bound = bound[0:budget]
+            
+        return bound
+
+
+
     def get_scores(self, model,data,test_indices,budget,points):
+        #mport pdb; pdb.set_trace()
         print("Starting score function")
+
+        
+
+
         num_test = test_indices.size
 
         expected_utilities = np.zeros((num_test,1))
@@ -278,6 +324,14 @@ class ENS(Utility):
         unlabeled_ind = self.selector.filter(data, points)
 
         probabilities = model.predict(data,test_indices)
+
+        #TODO: add probability sorting here!!!
+        #
+        #[test_probs, sort_ind] = sort(test_probs(:,1), 'descend');
+        #test_ind         = test_ind(sort_ind)
+
+        
+
 
         probs = np.zeros((points.size,1))
 
@@ -293,7 +347,7 @@ class ENS(Utility):
 
         argsort_ind = (-probabilities).argsort(axis=0)
 
-        probabilities_sorted = probabilities[argsort_ind]
+        probabilities_sorted = probabilities[argsort_ind[:,0]]
         
         top_ind = np.argsort(-unlabeled_probs,axis = 0,kind = 'stable')
 
@@ -307,7 +361,61 @@ class ENS(Utility):
 
         unlabeledWeights[data.train_indices,:]=0
         
+
+
+
+        #begin pruning code
+
+        prob_upper_bound = self.knnbound(model, data, points, test_indices, budget)
+
+        future_utility_if_neg = np.sum(probabilities_sorted[0:budget])
+                                #sum(success_probabilities(... top_ind(1:remaining_budget)));
+
+        max_num_influence = model.k
+
+        if max_num_influence>= budget:
+            future_utility_if_pos = np.sum(prob_upper_bound[1:budget])
+                                    #np.sum(prob_upper_bound[1:remaining_budget])
+
+        else:
+            tmp_ind = top_ind[0:(budget-max_num_influence)]
+            #tmp_ind = top_ind[0:(budget-7)]
+            future_utility_if_pos = np.sum(probabilities[tmp_ind]) + np.sum(prob_upper_bound[0:max_num_influence])
+
+        
+        future_utilities= np.zeros((1,2))
+        future_utilities[0][0]=future_utility_if_pos
+        future_utilities[0][1]=future_utility_if_neg
+
+        #want sorted probabilities?
+
+        #matches up until future_utility
+        future_utility = np.matmul(probabilities_including_negative,future_utilities.T)
+
+        #future_utility = future_utilities*probabilities_including_negative
+
+
+        future_utility_bound=  future_utility - cur_future_utility
+
+
+        #TODO: examine order of these things, I think that some are in order of 'test_ind' from matlab(second coefficient), while others are in order of test_ind in python(probabilities)
+        upper_bound_of_score = probabilities + future_utility_bound[np.take(reverse_ind,test_indices).astype(int)]
+        
+        np.savetxt('bound.txt', upper_bound_of_score, fmt='%10.5f', delimiter=' ')
+        #upper_bound_of_score = upper_bound_of_score[top_ind]
+        
+        pruned = np.zeros((num_test,1))
+        current_max =-1
+        
+        #end pruning code
+        utilities = np.zeros(test_indices.shape)
+        import pdb; pdb.set_trace()
+
         for i in range(num_test):
+
+            if pruned[i]:
+                continue
+
             this_test_ind = test_indices[i].astype(int)
 
             fake_train_ind = np.append(data.train_indices,this_test_ind)
@@ -359,7 +467,6 @@ class ENS(Utility):
 
 
 
-
             #End unrolling for loop
 
             for j in range(2):
@@ -383,19 +490,32 @@ class ENS(Utility):
                 #    import pdb; pdb.set_trace()
             
             expected_utilities[i]= np.matmul(this_test_probs[i],pstar)
-            compareValuesRemoveLater[i]=pstar.ravel()
-            
-            
-        utilities = probabilities + expected_utilities - cur_future_utility
 
+            utilities[i] = probabilities[i]+expected_utilities[i]-cur_future_utility
+
+            if utilities[i]>current_max:
+                current_max = utilities[i]
+                pruned[upper_bound_of_score <= current_max] = True
+
+            #compareValuesRemoveLater[i]=pstar.ravel()
+        
+        #TODO: change order that I'm calculating utilities so that I can do it inside for loop
+        """
+        if expected_utilities(i) > current_max
+            current_max = expected_utilities(i);
+            query_ind = test_ind(i);
+            pruned(upper_bound_of_score < current_max) = true;
+        """
+        
+            
+        #utilities = probabilities + expected_utilities - cur_future_utility
+
+        
         #np.savetxt('p.txt', p, fmt='%10.5f', delimiter=' ')
         #np.savetxt('q.txt', q, fmt='%10.5f', delimiter=' ')
         #np.savetxt('top_ind.txt', top_ind, fmt='%10.5f', delimiter=' ')
         
         #np.savetxt('expected_utilities.txt', utilities, fmt='%10.5f', delimiter=' ')
-        a_ind = np.where(test_indices==1908)
-
-        print("utility_1908: ",utilities[a_ind])
 
 
         return utilities
@@ -420,8 +540,9 @@ class ArgMaxPolicy(Policy):
     def choose_next(self, data, test_indices, budget,points):
         
         if test_indices.size ==1:
-            return test_indices
+            return test_indices[0]
         scores = self.utility.get_scores(self.model,data,test_indices,budget,points)
+        
         max_index = np.argmax(scores)
 
         chosen_x_index = test_indices[max_index]
@@ -433,6 +554,7 @@ class ArgMaxPolicy(Policy):
         #print("with y_train value:",self.Utility.model.problem.y_train[chosen_x_index])
 
         #chosen_x = self.model.problem.x_pool[chosen_x_index]
+        
         return chosen_x_index
 
 
