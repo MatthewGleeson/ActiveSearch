@@ -354,7 +354,7 @@ class KnnModel(Model):
         self.dist = self.dist[:, 1:]
         self.ind = self.ind[:, 1:]
         self.similarities = np.reciprocal(self.dist)
-    
+        
         values = self.similarities.flatten()
         # row = np.tile(np.arange(0,n), (k,1)).T.flatten()
         row = np.kron(np.arange(0, n), np.ones(((1, k)))).flatten()

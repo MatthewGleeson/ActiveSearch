@@ -15,23 +15,6 @@ class ActiveLearning(object):
         self.random = random
         self.problem = problem(jitter)
         self.utilityvalue = utility
-        if utility== 1:
-            self.utility = OneStep()
-            self.selector = UnlabelSelector()
-        elif utility == 2:
-            self.utility = TwoStep()
-            self.random = False
-            random = False
-            print("two-step utility selected. Overriding random in favor of argmax")
-            self.selector = TwoStepPruningSelector()
-        elif utility ==3:
-            self.utility = ENS()
-            self.random = False
-            random = False
-            print("ENS utility selected. Overriding random in favor of argmax")
-            self.selector = UnlabelSelector()
-            #self.selector = ENSPruningSelector()
-            self.unlabel_selector = UnlabelSelector()
 
         if random:
             self.model = RandomModel()
@@ -40,7 +23,29 @@ class ActiveLearning(object):
             print("KNN MODEL SELECTED!!!")
         
         self.iteration = 0
-        self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
+
+
+        if utility== 1:
+            self.utility = OneStep()
+            self.selector = UnlabelSelector()
+            self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
+        elif utility == 2:
+            self.utility = TwoStep()
+            self.random = False
+            random = False
+            print("two-step utility selected. Overriding random in favor of argmax")
+            self.selector = TwoStepPruningSelector()
+            self.policy = ArgMaxPolicy(self.problem, self.model,  self.utility)
+        elif utility ==3:
+            self.utility = ENS()
+            self.random = False
+            random = False
+            print("ENS utility selected. Overriding random in favor of argmax")
+            self.selector = UnlabelSelector()
+            #self.selector = ENSPruningSelector()
+            self.unlabel_selector = UnlabelSelector()
+            self.policy = ENSPolicy(self.problem, self.model,  self.utility)
+        
 
     def run(self, budget):
 
