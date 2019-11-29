@@ -256,9 +256,7 @@ class TestTwoStep:
 class TestENS:
   
 
-
-
- 
+  @pytest.mark.skip(reason="Already passing")
   def test_ENS_4nn_every_iteration_no_pruning(self):
 
     budget = 99
@@ -316,6 +314,11 @@ class TestENS:
       #print(test_indices.shape)
       #print(this_iter_expected_test_indices.reshape(-1,).shape)
       probabilities = model.predict(currentData,test_indices)
+
+      argsort_ind = (-probabilities).argsort(axis=0)
+      probabilities = probabilities[argsort_ind[:,0]]
+      test_indices = test_indices[argsort_ind[:,0]]
+
       scores = utility.get_scores(model, currentData, this_iter_expected_test_indices,budget,problem.points, probabilities, do_pruning = False)
 
       max_index = np.argmax(scores)
@@ -324,6 +327,8 @@ class TestENS:
       this_iter_expected_scores = expected_scores[budget_string][0][0]
       #print(this_iter_expected_scores)
 
+      #np.savetxt('bound.txt', scores, fmt='%10.5f', delimiter=' ')
+      #np.savetxt('bound2.txt', this_iter_expected_scores, fmt='%10.5f', delimiter=' ')
 
       for score, expected in zip(scores, this_iter_expected_scores):
         assert score == pytest.approx(expected,abs=1e-13)
@@ -345,7 +350,7 @@ class TestENS:
 
 
 
-  @pytest.mark.skip(reason="incomplete")
+  @pytest.mark.skip(reason="Already passing")
   def test_ENS_4nn_every_iteration_with_pruning(self):
 
     budget = 99

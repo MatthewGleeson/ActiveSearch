@@ -8,28 +8,19 @@ import scipy.io
 
 
 def genData(jitter):
+    """Generates data for use in an Active Search problem
 
-    # eng = matlab.engine.start_matlab()
-
-    # # outputs a dictionary object with key values 'points', 'num_points', 'num_classes'
-    # labels_random, labels_deterministic, problem = eng.generate_world_driver(
-    #     nargout=3)
-
-    # #labels_random = np.array(labels_random._data).reshape(labels_random.size[::-1]).T
-    # labels_random = labels_random._data
-    # labels_deterministic = labels_deterministic._data
-    # myoutput = problem['points']
-    # points = np.array(myoutput._data).reshape(myoutput.size[::-1]).T
-
-    # #import pdb; pdb.set_trace()
-
-    # # TODO: uncomment below to graph dataset
-    # # plt.scatter(points[:,0],points[:,1],c=labels_deterministic)
-    # # plt.show()
-
-    # #import pdb; pdb.set_trace()
-
-    # eng.quit()
+        Parameters
+        ----------
+        jitter : bool
+            Whether or not to add jitter to the points
+        
+        Returns
+        ----------
+        sum_to_return : array_like
+            the sum of the top (budget) elements from p and q
+    """
+    
     if jitter:
         points = scipy.io.loadmat("./data/points_jitter_div_by_100.mat")
         points = points['points']
