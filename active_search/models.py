@@ -124,7 +124,7 @@ class ToyProblem(Problem):
     """
 
     def __init__(self,jitter = False):
-        self.labels_random, self.labels_deterministic, self.points =
+        self.labels_random, self.labels_deterministic, self.points = \
             genData(jitter)
 
     def oracle_function(self, index):

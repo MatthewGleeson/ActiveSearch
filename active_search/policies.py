@@ -131,7 +131,7 @@ class OneStep(Utility):
             the expected utilities corresponding to points in test_indices
         """
 
-        expected_utilities = model.predict(data, test_indices) + 
+        expected_utilities = model.predict(data, test_indices) + \
             sum(data.observed_labels)
         return expected_utilities
         # return probability estimation
@@ -189,7 +189,7 @@ class TwoStep(Utility):
         unlabeled_probs = all_probs[unlabeled_ind]
 
         reverse_ind = np.ones((points.size,1))*-1
-        reverse_ind[unlabeled_ind]= 
+        reverse_ind[unlabeled_ind]= \
             np.arange(0,unlabeled_ind.size).reshape((unlabeled_ind.size,1))
 
         reverse_ind = reverse_ind.astype(int)
@@ -237,7 +237,7 @@ class TwoStep(Utility):
 
                 p_max = np.amax(p)
 
-                pstar[1-j][0] = max(p_max, np.amax(fake_predictions))+j+
+                pstar[1-j][0] = max(p_max, np.amax(fake_predictions))+j+ \
                     sum(data.observed_labels)
 
             expected_utilities[i]= np.matmul(probabilities_including_negative[
@@ -250,6 +250,68 @@ class ENS(Utility):
     def __init__(self):
         self.selector = UnlabelSelector()
         pass
+
+    def knnbound(self, model, data, points, test_indices, budget):
+        """Calculates a bound on the probability of nay point being a
+            target after being conditioned on addtional target point
+            observations
+            
+            Parameters
+            ----------
+            model : Model
+                See models.py
+            data : Data
+                Data object for the Active Search problem
+            points : array_like
+                Numpy array containing all points in the search space
+            test_indices : array_like
+                Input array of indices that correspond to `points`, must be
+                dimensions nx1
+            budget : int
+                remaining budget
+            
+            Returns
+            ----------
+            bound : array_like
+                The maximum probability that any point can have of being a
+                target, after further conditioning on (budget)
+                additional target points
+            """
+        observed_labels = np.asarray(data.observed_labels)
+        train_indices = np.asarray(data.train_indices)
+        mask = observed_labels == 1
+        sparseMatrixColumnIndicesPos = train_indices[mask].astype(int)
+        sparseMatrixColumnIndicesNeg = train_indices[~mask].astype(int)
+        end = model.weight_matrix.shape[0]
+        
+        
+        
+        knn_weights = model.similarities
+        in_train = np.isin(model.ind, data.train_indices)
+        knn_weights[in_train] =  0
+        max_weight = np.max(knn_weights[test_indices.astype(int),0:min(end,len(data.train_indices)+1)] ,axis=1)
+
+        successes = model.weight_matrix[test_indices,:][:,
+                                        sparseMatrixColumnIndicesPos].toarray().sum(axis=1)
+        
+        failures = model.weight_matrix[test_indices,:][:,
+                                        sparseMatrixColumnIndicesNeg].toarray().sum(axis=1)
+
+        max_alpha = 0.1 + successes + max_weight
+
+        min_beta = .9 + failures
+
+        #begin pasted code
+
+        bound = np.divide(max_alpha,(max_alpha+min_beta))
+
+        if budget<=1:
+            bound = np.amax(bound)
+        else:
+            bound[::-1].sort()
+            bound = bound[0:budget]
+            
+        return bound
 
     def get_scores(self, model,data,test_indices,budget,points,probabilities,
          do_pruning):
@@ -330,7 +392,7 @@ class ENS(Utility):
 
             else:
                 tmp_ind = top_ind[0:(budget-max_num_influence)]
-                future_utility_if_pos = np.sum(probabilities[tmp_ind]) +
+                future_utility_if_pos = np.sum(probabilities[tmp_ind]) + \
                     np.sum(prob_upper_bound[0:max_num_influence])
 
             
@@ -419,7 +481,7 @@ class ENS(Utility):
             
             expected_utilities[i]= np.matmul(this_test_probs[i],pstar)
 
-            utilities[i] = probabilities[i]+expected_utilities[i]-
+            utilities[i] = probabilities[i]+expected_utilities[i]- \
                 cur_future_utility
             if do_pruning and utilities[i]>current_max:
                 current_max = utilities[i]
