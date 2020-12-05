@@ -2,8 +2,7 @@
 
 This repo contains python implentations of [Efficient Nonmyopic Active Search, ICML 2017](http://proceedings.mlr.press/v70/jiang17d.html) and [Efficient Nonmyopic Batch Active Search, NeurIPS 2018](https://papers.nips.cc/paper/7387-efficient-nonmyopic-batch-active-search).
 
-Active search is an active learning paradigm which seeks to sequentially inspect data so as to discover members of a rare, desired class. The labels are not known a priori but can be revealed by querying a costly labeling oracle. The goal is to design an policy to sequentially query(observe) points to find as many valuable points as possible under a labeling budget. 
-[Efficient Nonmyopic Active Search](http://proceedings.mlr.press/v70/jiang17d.html) 
+Active search is an active learning paradigm which seeks to sequentially inspect data so as to discover members of a rare, desired class. The labels are not known a priori but can be revealed by querying a costly labeling oracle. The goal is to design an policy to sequentially query(observe) points to find as many valuable points as possible under a labeling budget. The Bayesian optimal policy for Active Search was derived in [Efficient Nonmyopic Active Search, ICML 2017](http://proceedings.mlr.press/v70/jiang17d.html), which automatically and dynamically balances exploration and exploitation consistent with the remaining budget, without relying on a parameter to control this tradeoff.
 
 Below is an example of Efficient Nonmyopic Active Search(ENS) running on a toy 2-d problem with a budget of 300 queries:
 
