@@ -1,5 +1,4 @@
 """Policies for active search"""
-#from models import *
 import numpy as np
 import copy
 from active_search.models import UnlabelSelector,KnnModel
@@ -9,8 +8,6 @@ from scipy.sparse import find
 #from cppFolder import merge_sort
 import ctypes
 import os
-
-#TODO: remove when verify ENS working correctly:
 from os.path import dirname, join as pjoin
 import scipy.io as sio
 import time

@@ -2,6 +2,8 @@
 
 from active_search.policies import *
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.font_manager import FontProperties
 from active_search.models import *
 from math import ceil
 import os
@@ -138,7 +140,7 @@ class ActiveLearning(object):
         """
         
         starting_budget = budget
-        np.random.seed(3)
+        np.random.seed(8)
         # TODO: improve efficiency!! consider changing to masked version below
         #       positive_indices = self.points[labels_deterministic]
         positive_indices = [i for i, x in 
@@ -147,7 +149,7 @@ class ActiveLearning(object):
         is24 = np.where(positive_indices==24)
         print("24th index:",is24)
         firstObsIndex = positive_indices[0]
-        
+        firstObsIndex = np.random.randint(0,len(self.problem.points)-1)
         currentData = Data()
         # print k-nearest neighbors of first point
         print("K-nearest neighbors indices of first point:",
@@ -229,6 +231,14 @@ class ActiveLearning(object):
             plt.scatter(self.problem.points[x_index, 0],
                         self.problem.points[x_index, 1],
                         c='green', s=20)
+        fontP = FontProperties()
+        fontP.set_size('xx-small')
+        unobserved_nontarget = mpatches.Patch(color='#440154', label='unobserved non-target')
+        unobserved_target = mpatches.Patch(color='#fde725', label='unobserved target')
+        observed_nontarget  = mpatches.Patch(color='red', label='observed non-target')
+        observed_target = mpatches.Patch(color='green', label='observed target')
+        plt.legend(bbox_to_anchor=(1., 1),handles=[unobserved_nontarget,unobserved_target,observed_nontarget,observed_target],prop=fontP)
+
         plt.pause(0.001)
         filename = "imgDirectory/progressive"+str(self.iteration)+".png"
         plt.savefig(filename)

@@ -1,18 +1,10 @@
-"""Models for active search"""
-
 import numpy as np
 import copy
 from active_search.createdata import genData
 from scipy.sparse import csr_matrix
-
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.neighbors import KDTree
-
-#TODO: remove this line after validating with matlab code
 from scipy.io import savemat
-
-
-
 
 
 class Data(object):
